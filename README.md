@@ -1,8 +1,8 @@
-# Pathman — Windows Script PATH Manager
+# Pathman — Windows Script PATH Manager - Version 1.3 
 
-Run any script (`.py`, `.js`, `.rb`, `.ps1`, etc.) as a permanent CMD command — no extension needed.
+Run scripts, open files, and launch URLs as permanent Command Prompt commands.
 
-Pathman generates `.bat` launchers and manages your user PATH safely so you can execute scripts from anywhere.
+Pathman generates `.bat` launchers and safely manages your user PATH so you can execute anything from anywhere.
 
 ---
 
@@ -10,24 +10,24 @@ Pathman generates `.bat` launchers and manages your user PATH safely so you can 
 
 * [Quick Start](#quick-start)
 * [Installation](#installation)
-* [Register a Script](#register-a-script)
+* [Register Targets](#register-targets)
 * [Commands](#commands)
 * [Examples](#examples)
 * [How It Works](#how-it-works)
 * [Supported Interpreters](#supported-interpreters)
 * [Configuration](#configuration)
+* [Backup and Restore](#backup-and-restore)
 * [Uninstall](#uninstall)
 * [Troubleshooting](#troubleshooting)
 * [Requirements](#requirements)
 * [File Structure](#file-structure)
-* [License](#license)
 * [Contributing](#contributing)
 
 ---
 
 ## Quick Start
 
-### 1. Install Pathman (one-time setup)
+### 1. Install (one-time setup)
 
 ```cmd
 python pathman.py install
@@ -35,69 +35,100 @@ python pathman.py install
 
 This will:
 
-* Create `%USERPROFILE%\.pathman\bin\` and add it to your **user PATH**
-* Generate `pathman.bat` to run Pathman from any CMD window
-* Create the config file `%USERPROFILE%\.pathman\config.json`
+* Create `%USERPROFILE%\.pathman\bin\`
+* Add it to your user PATH
+* Generate `pathman.bat`
+* Create `config.json`
 
-> ⚠️ Open a **new** CMD window after installing for PATH changes to take effect.
+> Open a new Command Prompt window after installation.
 
 ---
 
-### 2. Register a Script
+### 2. Add a Command
 
 ```cmd
 pathman add myscript.py --alias mycmd
 ```
 
-Now you can run it from any directory:
+Run it from anywhere:
 
 ```cmd
-mycmd.bat               # runs myscript.py
-mycmd --help            # passes args through
-mycmd input.txt         # arguments forwarded automatically
+mycmd
+mycmd --help
+mycmd input.txt
 ```
 
-Pathman auto-detects interpreters based on file extension (`.py` → `python`, `.js` → `node`, etc.), but you can override with `--interpreter`.
+---
+
+## Installation
+
+```cmd
+python pathman.py install
+```
+
+| Action            | Result                       |
+| ----------------- | ---------------------------- |
+| Create directory  | `%USERPROFILE%\.pathman\bin` |
+| Update PATH       | Adds bin to user PATH        |
+| Create launcher   | `pathman.bat`                |
+| Initialize config | `config.json`                |
+
+---
+
+## Register Targets
+
+Pathman supports three types:
+
+| Type   | Description                          |
+| ------ | ------------------------------------ |
+| `run`  | Execute scripts using an interpreter |
+| `open` | Open files with default application  |
+| `url`  | Open links in browser                |
 
 ---
 
 ## Commands
 
-| Command                               | Description                                            |
-| ------------------------------------- | ------------------------------------------------------ |
-| `pathman install`                     | One-time setup, creates launchers and updates PATH     |
-| `pathman add <script> --alias <name>` | Register a script as a CMD command                     |
-| `pathman list`                        | Show all registered aliases with status                |
-| `pathman remove <alias>`              | Unregister an alias and delete its launcher            |
-| `pathman edit <alias> [options]`      | Modify an alias: rename, change script, or interpreter |
-| `pathman config`                      | Open the configuration file in your default editor     |
-| `pathman uninstall`                   | Remove Pathman from PATH and delete all launchers      |
+| Command             | Description                   |
+| ------------------- | ----------------------------- |
+| `pathman install`   | Initial setup                 |
+| `pathman add`       | Register script, file, or URL |
+| `pathman list`      | Show all aliases              |
+| `pathman remove`    | Delete alias                  |
+| `pathman edit`      | Modify alias                  |
+| `pathman export`    | Export aliases                |
+| `pathman import`    | Import aliases                |
+| `pathman config`    | Open config file              |
+| `pathman uninstall` | Remove tool                   |
 
 ---
 
 ## Examples
 
 ```cmd
-# Register Python script
-pathman add C:\Scripts\deck.py --alias deck
+# Run script
+pathman add app.py --alias app
 
-# Register JavaScript with node
-pathman add tools\converter.js --alias conv --interpreter node
+# Run with interpreter
+pathman add build.js --alias build --interpreter node
 
-# Register PowerShell script
-pathman add backup.ps1 --alias backup --interpreter "powershell -File"
+# Open file
+pathman add report.pdf --alias report --type open
 
-# Rename an alias
-pathman edit deck --new-alias deckv2
+# Open URL
+pathman add https://github.com --alias gh --type url
 
-# Change the script path
-pathman edit deck --script C:\new\path\deck.py
+# Add description
+pathman add script.py --alias run --description "Main script"
 
-# View all registered aliases
-pathman list
+# Edit alias
+pathman edit run --script newscript.py
 
-# Remove an alias
-pathman remove deck
+# Rename alias
+pathman edit run --new-alias run2
+
+# Remove alias
+pathman remove run
 ```
 
 ---
@@ -105,64 +136,88 @@ pathman remove deck
 ## How It Works
 
 ```
-pathman add deck.py --alias deck
-         │
-         ▼
-Creates: %USERPROFILE%\.pathman\bin\deck.bat
-         │
-         └── Contents: python "C:\full\path\to\deck.py" %*
+pathman add script.py --alias run
+        │
+        ▼
+Creates: %USERPROFILE%\.pathman\bin\run.bat
+        │
+        └── python "C:\full\path\script.py" %*
 
-%USERPROFILE%\.pathman\bin\ is in your PATH
-         │
-         ▼
-CMD finds deck.bat when you type: deck [args]
+PATH includes .pathman\bin
+        │
+        ▼
+You can run: run [args]
 ```
 
-Each alias is a `.bat` file that calls the appropriate interpreter with all arguments forwarded.
+Each alias is a `.bat` file that forwards all arguments.
 
 ---
 
-## Supported Interpreters (auto-detected)
+## Supported Interpreters
 
-| Extension | Default Interpreter |
-| --------- | ------------------- |
-| `.py`     | `python`            |
-| `.js`     | `node`              |
-| `.rb`     | `ruby`              |
-| `.pl`     | `perl`              |
-| `.sh`     | `bash`              |
-| `.ps1`    | `powershell -File`  |
-| other     | `python`            |
+| Extension | Interpreter |
+| --------- | ----------- |
+| `.py`     | python      |
+| `.js`     | node        |
+| `.rb`     | ruby        |
+| `.pl`     | perl        |
+| `.sh`     | bash        |
+| `.ps1`    | powershell  |
+| other     | python      |
 
-Override with `--interpreter` to run scripts with custom programs.
+Override using `--interpreter`.
 
 ---
 
 ## Configuration
 
-Pathman stores all aliases in:
+Location:
 
 ```
 %USERPROFILE%\.pathman\config.json
 ```
 
-You can edit it manually or with:
+Open:
 
 ```cmd
 pathman config
 ```
 
-Structure:
+Example:
 
 ```json
 {
   "aliases": {
-    "deck": {
-      "script": "C:\\Scripts\\deck.py",
-      "interpreter": "python"
+    "app": {
+      "type": "run",
+      "script": "C:\\scripts\\app.py",
+      "interpreter": "python",
+      "description": "Main app"
     }
   }
 }
+```
+
+---
+
+## Backup and Restore
+
+### Export
+
+```cmd
+pathman export backup.json
+```
+
+### Import
+
+```cmd
+pathman import backup.json
+```
+
+Overwrite existing:
+
+```cmd
+pathman import backup.json --overwrite
 ```
 
 ---
@@ -173,33 +228,45 @@ Structure:
 pathman uninstall
 ```
 
-Removes `.pathman\bin` from your PATH and deletes all launchers. Your `config.json` is preserved for reference.
+| Action            | Result                   |
+| ----------------- | ------------------------ |
+| Remove PATH entry | `.pathman\bin` removed   |
+| Delete launchers  | All `.bat` files removed |
+| Keep config       | `config.json` preserved  |
 
 ---
 
 ## Troubleshooting
 
-**Alias runs but shows no output**
+### Command not recognized
 
-* Interpreter not installed or missing in PATH
-* Wrong interpreter used
-* Script path is invalid
+* Restart Command Prompt
+* Ensure `.pathman\bin` is in PATH
+
+---
+
+### Script not running
+
+* Interpreter missing
+* Wrong interpreter
 
 Fix:
 
 ```cmd
-pathman edit mycmd --interpreter "C:\Path\To\python.exe"
+pathman edit mycmd --interpreter python
 ```
 
-**Command not recognized**
+---
 
-* Restart CMD after installation
-* Confirm `%USERPROFILE%\.pathman\bin` is in PATH
+### Alias shows MISSING
 
-**Script shows as MISSING**
+* File moved or deleted
 
-* File was moved or deleted
-* Update path: `pathman edit mycmd --script newpath`
+Fix:
+
+```cmd
+pathman edit mycmd --script newpath
+```
 
 ---
 
@@ -207,7 +274,7 @@ pathman edit mycmd --interpreter "C:\Path\To\python.exe"
 
 * Windows 10 or 11
 * Python 3.8+
-* No admin rights required (user PATH only)
+* No administrator privileges required
 
 ---
 
@@ -215,16 +282,16 @@ pathman edit mycmd --interpreter "C:\Path\To\python.exe"
 
 ```
 %USERPROFILE%\.pathman/
-├── bin/           # .bat launchers for aliases
+├── bin/           # .bat launchers
 ├── config.json    # alias registry
 ```
-
-
 
 ---
 
 ## Contributing
 
-* Open issues for bugs or feature requests
-* Submit pull requests for improvements
-* Keep the tool simple and focused
+* Report issues for bugs or improvements
+* Submit pull requests
+* Keep the tool simple and maintainable
+
+---
