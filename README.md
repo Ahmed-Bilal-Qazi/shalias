@@ -1,14 +1,17 @@
-# shalias — Cross-Platform Script Alias Manager · v1.5
+
+---
+
+# shalias — Cross-Platform Script Alias Manager · v2.0
 
 > Run scripts, open files, and launch URLs as permanent terminal commands — on **Windows, macOS, and Linux**.
 
-`shalias` generates native launchers (`.bat` on Windows, shell scripts on Unix) and safely manages your shell PATH so you can execute anything from anywhere, with zero friction.
+`shalias` creates native launchers (`.bat` on Windows, shell scripts on Unix) and manages your PATH so you can execute anything from anywhere with minimal friction.
 
 ---
 
 ## Table of Contents
 
-* [What's New in v1.5](#whats-new-in-v15)
+* [What's New in v2.0](#whats-new-in-v20)
 * [Quick Start](#quick-start)
 * [Installation](#installation)
 * [Register Targets](#register-targets)
@@ -16,7 +19,12 @@
 * [Examples](#examples)
 * [Groups](#groups)
 * [Search](#search)
+* [Execution](#execution)
+* [Stats](#stats)
 * [Doctor](#doctor)
+* [Locking](#locking)
+* [Autocompletion](#autocompletion)
+* [Auto Update](#auto-update)
 * [How It Works](#how-it-works)
 * [Supported Interpreters](#supported-interpreters)
 * [Configuration](#configuration)
@@ -29,29 +37,33 @@
 
 ---
 
-## What's New in v1.5
+## What's New in v2.0
 
-| Feature | Description |
-|---|---|
-|  Cross-platform | Full support for **Linux** and **macOS** alongside Windows |
-|  Groups | Organize aliases into named groups (`--group devops`) |
-|  Search | Find aliases instantly with `shalias search <term>` |
-|  Doctor | Audit all aliases for broken files and missing interpreters |
-|  Atomic saves | Config writes are crash-safe (write-then-rename) |
-|  More interpreters | Added `ts-node`, `lua`, `php`, `Rscript`, `go run` |
-|  Cleaner output | Grouped list view, better error messages, richer summaries |
+| Feature            | Description                                         |
+| ------------------ | --------------------------------------------------- |
+| Parallel execution | Run multiple aliases concurrently with `--parallel` |
+| Group execution    | Execute all aliases in a group with `run-group`     |
+| Usage tracking     | Track run count and last used timestamps            |
+| Stats dashboard    | View alias usage insights via `shalias stats`       |
+| Alias locking      | Prevent edits/removal with `freeze` / `unfreeze`    |
+| JSON output        | Machine-readable output for scripting (`--json`)    |
+| Import preview     | `--dry-run` mode before importing                   |
+| Auto update        | Background version check + manual update command    |
+| Autocompletion     | Bash and Zsh completion support                     |
+| Improved doctor    | Better diagnostics and optional auto-fix            |
+| Safer config       | Atomic writes + rolling backups                     |
 
 ---
 
 ## Quick Start
 
-### 1. Install (one-time setup)
+### 1. Install
 
 ```bash
 python shalias.py install
 ```
 
-Open a **new terminal window** after installation.
+Open a **new terminal window**.
 
 ### 2. Add a Command
 
@@ -59,12 +71,11 @@ Open a **new terminal window** after installation.
 shalias add myscript.py --alias mycmd
 ```
 
-### 3. Run It from Anywhere
+### 3. Run It
 
 ```bash
 mycmd
 mycmd --help
-mycmd input.txt
 ```
 
 ---
@@ -75,223 +86,242 @@ mycmd input.txt
 python shalias.py install
 ```
 
-| Action | Result |
-|---|---|
-| Create directory | `~/.shalias/bin/` |
-| Update PATH | Adds `bin/` to your user PATH |
-| Create launcher | `shalias` (or `shalias.bat` on Windows) |
-| Initialize config | `~/.shalias/config.json` |
-
-**Windows:** Open a new `cmd` window after installing.  
-**Linux / macOS:** Run `source ~/.bashrc` (or `~/.zshrc`), then open a new terminal.
+| Action            | Result                     |
+| ----------------- | -------------------------- |
+| Create directory  | `~/.shalias/bin/`          |
+| Update PATH       | Adds `bin/` to PATH        |
+| Create launcher   | `shalias` or `shalias.bat` |
+| Initialize config | `~/.shalias/config.json`   |
 
 ---
 
 ## Register Targets
 
-shalias supports three alias types:
-
-| Type | Description |
-|---|---|
-| `run` | Execute a script using an interpreter (default) |
-| `open` | Open a file with its default application |
-| `url` | Open a URL in the default browser |
+| Type   | Description                |
+| ------ | -------------------------- |
+| `run`  | Execute a script (default) |
+| `open` | Open a file                |
+| `url`  | Open a URL                 |
 
 ---
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `shalias install` | One-time setup |
-| `shalias add` | Register a script, file, or URL |
-| `shalias list` | Show all aliases (optionally filter by group) |
-| `shalias search` | Search aliases by name, description, target, or group |
-| `shalias doctor` | Audit aliases for broken files and interpreters |
-| `shalias remove` | Delete an alias |
-| `shalias edit` | Modify an alias |
-| `shalias export` | Export aliases to JSON |
-| `shalias import` | Import aliases from JSON |
-| `shalias config` | Open config file in your default editor |
-| `shalias uninstall` | Remove shalias from PATH |
+| Command              | Description                |
+| -------------------- | -------------------------- |
+| `shalias install`    | Setup environment          |
+| `shalias add`        | Register alias             |
+| `shalias list`       | List aliases               |
+| `shalias search`     | Search aliases             |
+| `shalias run`        | Run one or more aliases    |
+| `shalias run-group`  | Run all aliases in a group |
+| `shalias stats`      | Show usage statistics      |
+| `shalias doctor`     | Diagnose issues            |
+| `shalias edit`       | Modify alias               |
+| `shalias rename`     | Rename alias               |
+| `shalias remove`     | Delete alias               |
+| `shalias freeze`     | Lock alias                 |
+| `shalias unfreeze`   | Unlock alias               |
+| `shalias export`     | Export config              |
+| `shalias import`     | Import config              |
+| `shalias update`     | Check for updates          |
+| `shalias completion` | Generate shell completion  |
+| `shalias config`     | Open config                |
+| `shalias uninstall`  | Remove from system         |
 
 ---
 
 ## Examples
 
 ```bash
-# Run scripts
+# Scripts
 shalias add app.py --alias app
 shalias add build.js --alias build --interpreter node
-shalias add "C:\my scripts\run.ps1" --alias run
 
-# Open files with their default application
+# Files
 shalias add report.pdf --alias report --type open
-shalias add notes.docx --alias notes --type open
 
-# Open URLs in the browser
+# URLs
 shalias add https://github.com --alias gh --type url
-shalias add https://docs.python.org --alias pydocs --type url
 
-# Add descriptions and groups
-shalias add deploy.py --alias deploy --description "Deploy to prod" --group devops
-shalias add budget.xlsx --alias budget --type open --group finance
+# Groups
+shalias add deploy.py --alias deploy --group devops
 
-# Edit aliases
-shalias edit app --new-alias myapp
-shalias edit app --script /new/path/app.py
-shalias edit app --group backend
-shalias edit app --group ""        # remove from group
+# Editing
+shalias edit app --script new.py
+shalias rename app myapp
 
-# Remove an alias
-shalias remove app
+# Locking
+shalias freeze deploy
+shalias unfreeze deploy
 ```
 
 ---
 
 ## Groups
 
-Groups let you organize aliases into named categories. Use `--group` when adding or editing.
-
 ```bash
-# Add with a group
-shalias add deploy.sh --alias deploy --group devops
-shalias add logs.py --alias logs --group devops
-shalias add budget.xlsx --alias budget --type open --group finance
-
-# Filter the list to a specific group
-shalias list --group devops
-
-# Move an alias to a different group
-shalias edit deploy --group backend
-
-# Remove from group entirely
-shalias edit deploy --group ""
+shalias add test.py --alias test --group dev
+shalias list --group dev
+shalias run-group dev
 ```
-
-Groups are displayed as labeled sections in `shalias list`.
 
 ---
 
 ## Search
 
-Search across alias names, descriptions, targets, groups, and interpreters:
-
 ```bash
 shalias search python
 shalias search devops
-shalias search github
-shalias search report
 ```
+
+Searches across names, descriptions, groups, and targets.
+
+---
+
+## Execution
+
+### Run single
+
+```bash
+shalias run app
+```
+
+### Run multiple
+
+```bash
+shalias run app test build
+```
+
+### Parallel
+
+```bash
+shalias run app test --parallel
+```
+
+---
+
+## Stats
+
+```bash
+shalias stats
+```
+
+Displays:
+
+* run counts
+* last used timestamps
+* activity summary
 
 ---
 
 ## Doctor
 
-Run a full health check on all your aliases:
-
 ```bash
 shalias doctor
 ```
 
-Doctor checks for:
+Checks:
 
-- **MISSING** — target file has been moved or deleted
-- **NO LAUNCHER** — the `.bat` or shell script is gone (re-add the alias to fix)
-- **NO INTERP** — the interpreter isn't found in PATH
-- **NO TARGET** — no script path stored in config
-- **OK** — everything is healthy
+* missing files
+* missing interpreters
+* broken launchers
 
-Fix issues with:
+Auto-fix:
 
 ```bash
-shalias edit <alias> --script /new/path/to/script.py
-shalias edit <alias> --interpreter python3
+shalias doctor --fix
 ```
+
+---
+
+## Locking
+
+```bash
+shalias freeze myalias
+shalias unfreeze myalias
+```
+
+Prevents accidental modification or deletion.
+
+---
+
+## Autocompletion
+
+### Bash
+
+```bash
+source <(shalias completion bash)
+```
+
+### Zsh
+
+```bash
+source <(shalias completion zsh)
+```
+
+---
+
+## Auto Update
+
+```bash
+shalias update
+```
+
+Checks for new versions and upgrades.
 
 ---
 
 ## How It Works
 
 ```
-shalias add script.py --alias run --group devops
-        │
-        ▼
-Creates: ~/.shalias/bin/run        (Unix shell script)
-      or %USERPROFILE%\.shalias\bin\run.bat   (Windows)
-        │
-        └── python3 "/full/path/to/script.py" "$@"
-
-PATH includes ~/.shalias/bin
-        │
-        ▼
-You can run:  run [args]
+shalias add script.py --alias run
+        ↓
+Creates launcher in ~/.shalias/bin/
+        ↓
+Adds directory to PATH
+        ↓
+You run: run [args]
 ```
 
-Each alias is a native launcher that forwards all arguments to the target.
+Each alias forwards arguments directly to the target.
 
 ---
 
 ## Supported Interpreters
 
-| Extension | Default Interpreter |
-|---|---|
-| `.py` | `python3` (Unix) / `python` (Windows) |
-| `.js` | `node` |
-| `.ts` | `ts-node` |
-| `.rb` | `ruby` |
-| `.pl` | `perl` |
-| `.sh` | `bash` |
-| `.ps1` | `powershell` |
-| `.lua` | `lua` |
-| `.php` | `php` |
-| `.r` / `.R` | `Rscript` |
-| `.go` | `go run` |
-| other | `python3` / `python` |
+| Extension | Interpreter      |
+| --------- | ---------------- |
+| `.py`     | python3 / python |
+| `.js`     | node             |
+| `.ts`     | ts-node          |
+| `.sh`     | bash             |
+| `.ps1`    | powershell       |
+| `.rb`     | ruby             |
+| `.pl`     | perl             |
+| `.lua`    | lua              |
+| `.php`    | php              |
+| `.r`      | Rscript          |
+| `.go`     | go run           |
 
-Override with `--interpreter`:
+Override manually:
 
 ```bash
-shalias add app.py --alias app --interpreter /path/to/venv/bin/python
+shalias add script.xyz --alias test --interpreter custom_cmd
 ```
 
 ---
 
 ## Configuration
 
-**Location:**
-
 ```
-~/.shalias/config.json          (Linux / macOS)
-%USERPROFILE%\.shalias\config.json   (Windows)
+~/.shalias/config.json
 ```
 
-**Open in editor:**
+Open:
 
 ```bash
 shalias config
-```
-
-**Example:**
-
-```json
-{
-  "aliases": {
-    "deploy": {
-      "type": "run",
-      "script": "/home/user/scripts/deploy.py",
-      "interpreter": "python3",
-      "description": "Deploy to production",
-      "group": "devops"
-    },
-    "gh": {
-      "type": "url",
-      "target": "https://github.com",
-      "description": "GitHub",
-      "group": "docs"
-    }
-  }
-}
 ```
 
 ---
@@ -310,13 +340,11 @@ shalias export backup.json
 shalias import backup.json
 ```
 
-### Import (overwrite existing)
+Preview:
 
 ```bash
-shalias import backup.json --overwrite
+shalias import backup.json --dry-run
 ```
-
-Backups are plain JSON — easy to version-control or share across machines.
 
 ---
 
@@ -326,40 +354,45 @@ Backups are plain JSON — easy to version-control or share across machines.
 shalias uninstall
 ```
 
-| Action | Result |
-|---|---|
-| Remove PATH entry | `~/.shalias/bin` removed from PATH |
-| Delete launchers | All launcher files deleted |
-| Keep config | `config.json` is preserved |
+Removes:
+
+* PATH entry
+* launchers
+
+Keeps:
+
+* config file
 
 ---
 
 ## Troubleshooting
 
-### Command not recognized
+### Command not found
 
-- Open a new terminal window
-- Confirm `~/.shalias/bin` is in `$PATH` (`echo $PATH`)
-- On Linux/macOS, run `source ~/.bashrc` or `source ~/.zshrc`
+* Restart terminal
+* Verify PATH includes `~/.shalias/bin`
 
-### Script not running
+### Script fails
 
-- Interpreter may be missing or named differently
-- Fix with: `shalias edit mycmd --interpreter python3`
-- Check all issues with: `shalias doctor`
+* Fix interpreter:
 
-### Alias shows MISSING
+```bash
+shalias edit mycmd --interpreter python3
+```
 
-- The target file was moved or deleted
-- Fix with: `shalias edit mycmd --script /new/path/script.py`
+### Broken alias
+
+```bash
+shalias doctor
+```
 
 ---
 
 ## Requirements
 
-- Python 3.8+
-- Windows 10/11, macOS 11+, or any modern Linux distro
-- No administrator / root privileges required
+* Python 3.8+
+* Windows, macOS, or Linux
+* No admin privileges required
 
 ---
 
@@ -367,18 +400,19 @@ shalias uninstall
 
 ```
 ~/.shalias/
-├── bin/           # Native launchers (.bat on Windows, shell scripts on Unix)
-└── config.json    # Alias registry
+├── bin/
+├── config.json
+└── backups/
 ```
 
 ---
 
 ## Contributing
 
-- Report bugs or suggest features via GitHub Issues
-- Submit pull requests — keep the tool simple and dependency-free
-- Run `shalias doctor` before submitting a bug report to include health info
+* Open issues for bugs or ideas
+* Keep it lightweight and dependency-free
+* Include `shalias doctor` output when reporting issues
 
 ---
 
-*shalias v1.5 — formerly pathman*
+**shalias v2.0**
