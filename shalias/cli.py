@@ -57,7 +57,7 @@ CONFIG_FILE = SHALIAS_DIR / "config.json"
 BACKUP_DIR  = SHALIAS_DIR / "backups"
 VERSION     = "3.0"
 
-UPDATE_URL = "https://raw.githubusercontent.com/Ahmed-Bilal-Qazi/shalias/main/shalias.py"
+UPDATE_URL = "https://raw.githubusercontent.com/Ahmed-Bilal-Qazi/shalias/main/shalias/cli.py"
 
 BANNER = r"""
   _____ _           _ _
@@ -531,22 +531,21 @@ def cmd_install(args):
     BIN_DIR.mkdir(parents=True, exist_ok=True)
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
+    # When installed via pip, shalias is already on PATH — no launcher needed.
+    # When run directly as `python shalias/cli.py install`, create a launcher.
     self_path = Path(sys.argv[0]).resolve()
-    if not self_path.exists() or self_path.suffix.lower() != ".py":
-        print(_r(f"  Can't find shalias.py at {self_path}"))
-        print("  Run it as: python shalias.py install")
-        sys.exit(1)
-
-    interp = "python" if IS_WINDOWS else "python3"
-    shalias_entry = {
-        "type": "run", "script": str(self_path), "interpreter": interp,
-        "description": "shalias itself", "use_count": 0, "env": {}, "cwd": "",
-    }
-    launcher = write_launcher("shalias", shalias_entry)
-    print(_g(f"  Launcher : {launcher}"))
-    print(_g(f"  Points to: {self_path}"))
-
-    add_to_path()
+    if self_path.suffix.lower() == ".py" and self_path.exists():
+        interp = "python" if IS_WINDOWS else "python3"
+        shalias_entry = {
+            "type": "run", "script": str(self_path), "interpreter": interp,
+            "description": "shalias itself", "use_count": 0, "env": {}, "cwd": "",
+        }
+        launcher = write_launcher("shalias", shalias_entry)
+        print(_g(f"  Launcher : {launcher}"))
+        print(_g(f"  Points to: {self_path}"))
+        add_to_path()
+    else:
+        print(_g("  Installed via pip — shalias is already on your PATH."))
 
     if not CONFIG_FILE.exists():
         save_config({"aliases": {}, "groups": {}, "meta": {}})

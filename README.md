@@ -1,5 +1,10 @@
 # shalias — Cross-Platform Script Alias Manager · v3.0
 
+[![PyPI version](https://img.shields.io/pypi/v/shalias.svg)](https://pypi.org/project/shalias/)
+[![Python](https://img.shields.io/pypi/pyversions/shalias.svg)](https://pypi.org/project/shalias/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
+
 Run scripts, open files, and launch URLs as permanent terminal commands — on **Windows, macOS, and Linux**. No config files to edit, no PATH gymnastics, no remembering where things live.
 
 ---
@@ -20,11 +25,9 @@ Run scripts, open files, and launch URLs as permanent terminal commands — on *
 
 ```
 # 1. Install (once)
-python shalias.py install
+pip install shalias
 
-# 2. Open a new terminal window
-
-# 3. Start adding things
+# 2. Start adding things (no new terminal needed)
 shalias add myscript.py                         # type auto-detected
 shalias add report.pdf --alias report           # opens with system default app
 shalias add https://github.com --alias gh       # opens in browser
@@ -39,6 +42,22 @@ gh
 ---
 
 ## Installation
+
+### Option A — pip (recommended)
+
+```
+pip install shalias
+```
+
+That's it. No extra steps, no new terminal window needed — pip puts `shalias` on your PATH automatically.
+
+To upgrade later:
+
+```
+pip install --upgrade shalias
+```
+
+### Option B — run directly (no pip)
 
 ```
 python shalias.py install
