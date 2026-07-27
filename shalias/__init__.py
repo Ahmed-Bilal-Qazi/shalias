@@ -1,1 +1,1 @@
-__version__ = "3.0"
+"""shalias — cross-platform script alias manager."""
