@@ -6,24 +6,9 @@ from pathlib import Path
 
 from ..colors import _b, _d, _g, _r, _y
 from ..config import backup_config, load_config, save_config
-from ..constants import ALIAS_TYPES, BIN_DIR, IS_WINDOWS
-from ..launcher import remove_launcher, write_launcher
+from ..constants import ALIAS_TYPES
+from ..launcher import remove_launcher, set_enabled, write_launcher
 from ..utils import parse_env, validate_alias, validate_group, validate_url
-
-
-def _launcher_paths(alias: str):
-    """Where an alias's launcher lives, enabled and disabled."""
-    live = BIN_DIR / (f"{alias}.bat" if IS_WINDOWS else alias)
-    return live, live.with_name(live.name + ".disabled")
-
-
-def _set_enabled(alias: str, enabled: bool) -> None:
-    """Turn an alias on or off by moving its launcher aside."""
-    live, parked = _launcher_paths(alias)
-    if enabled and parked.exists():
-        parked.replace(live)
-    elif not enabled and live.exists():
-        live.replace(parked)
 
 
 def cmd_edit(args):
@@ -62,7 +47,7 @@ def cmd_edit(args):
         backup_config()
         cfg["aliases"][alias]["enabled"] = enable
         save_config(cfg)
-        _set_enabled(alias, enable)
+        set_enabled(alias, enable)
         print(_g(f"  '{alias}' is now {'enabled' if enable else 'disabled'}."))
         return
 

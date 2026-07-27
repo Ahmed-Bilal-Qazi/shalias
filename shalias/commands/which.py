@@ -5,7 +5,7 @@ import sys
 
 from ..colors import _b, _d, _r, _y
 from ..config import load_config
-from ..constants import BIN_DIR, IS_WINDOWS
+from ..launcher import launcher_paths
 
 
 def cmd_which(args):
@@ -18,8 +18,7 @@ def cmd_which(args):
 
     info   = cfg["aliases"][alias]
     atype  = info.get("type", "run")
-    live   = BIN_DIR / (f"{alias}.bat" if IS_WINDOWS else alias)
-    parked = live.with_name(live.name + ".disabled")
+    live, parked = launcher_paths(alias)
 
     print()
     print(_b(f"  {alias}"))

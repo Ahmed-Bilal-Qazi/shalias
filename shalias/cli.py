@@ -34,20 +34,47 @@ from .commands.which       import cmd_which
 
 # ── Argument parser ───────────────────────────────────────────────────────────
 
+# Thirteen commands in one flat list is a wall of text on first contact, so the
+# six you actually use daily go up top and the rest are grouped underneath.
+HELP_EPILOG = """
+everyday
+  add          Register a script, file, URL, or command
+  list         Show your aliases (add a word to filter)
+  run          Run one or more aliases
+  which        Show what an alias points to
+  edit         Change an alias, or lock/disable it
+  remove       Delete an alias
+
+setup
+  install      One-time setup on this machine
+  doctor       Find and fix broken aliases (--fix)
+  update       Update shalias itself
+  uninstall    Remove shalias and every launcher
+
+moving between machines
+  export       Save all aliases to a JSON file
+  import       Load aliases from a JSON file
+  completion   Print a shell completion script
+
+Run 'shalias <command> --help' for the details on any one of them.
+"""
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="shalias",
         description="shalias - run your scripts from anywhere",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=HELP_EPILOG,
     )
     p.add_argument("--version", action="version", version=f"shalias {VERSION}")
-    sub = p.add_subparsers(dest="command")
+    sub = p.add_subparsers(dest="command", metavar="<command>")
 
     # install
-    sub.add_parser("install", help="One-time setup on this machine")
+    sub.add_parser("install")
 
     # add
-    a = sub.add_parser("add", help="Register a script, file, URL, or command as an alias")
+    a = sub.add_parser("add")
     a.add_argument("script",        nargs="?",        help="Script/file path, URL, or shell command (with --inline)")
     a.add_argument("--chain",       nargs="+", metavar="ALIAS",
                    help="Make this alias run other aliases, in order")
@@ -62,11 +89,11 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--description", "-d",             help="Short description")
 
     # remove
-    rm = sub.add_parser("remove", help="Delete an alias")
+    rm = sub.add_parser("remove")
     rm.add_argument("alias")
 
     # list
-    ls = sub.add_parser("list", help="Show aliases, optionally filtered")
+    ls = sub.add_parser("list")
     ls.add_argument("pattern",  nargs="?",
                     help="Only show aliases matching this text")
     ls.add_argument("--group",  "-g",   help="Filter by group")
@@ -81,22 +108,22 @@ def build_parser() -> argparse.ArgumentParser:
     ls.add_argument("--json",   action="store_true", help=argparse.SUPPRESS)
 
     # run
-    ru = sub.add_parser("run", help="Run one or more aliases by name")
+    ru = sub.add_parser("run")
     ru.add_argument("aliases", nargs="*",  help="Alias name(s)")
     ru.add_argument("--group",    "-g",    help="Run every alias in this group")
     ru.add_argument("--parallel", action="store_true", help="Run them all at the same time")
 
     # which
-    wh = sub.add_parser("which", help="Show what an alias points to")
+    wh = sub.add_parser("which")
     wh.add_argument("alias")
 
     # doctor
-    doc = sub.add_parser("doctor", help="Check for broken aliases")
+    doc = sub.add_parser("doctor")
     doc.add_argument("--fix", action="store_true",
                      help="Auto-remove aliases pointing to missing files")
 
     # edit
-    ed = sub.add_parser("edit", help="Modify an alias (interactive if no flags given)")
+    ed = sub.add_parser("edit")
     ed.add_argument("alias")
     ed.add_argument("--new-alias",   dest="new_alias",    help="Rename the alias")
     ed.add_argument("--script",      "-s",                help="New script or file path")
@@ -115,22 +142,22 @@ def build_parser() -> argparse.ArgumentParser:
     ed.add_argument("--enable",  action="store_true", help="Turn it back on")
 
     # export / import
-    ex = sub.add_parser("export", help="Save all aliases to a JSON file")
+    ex = sub.add_parser("export")
     ex.add_argument("output", nargs="?", default="shalias_backup.json")
-    im = sub.add_parser("import", help="Load aliases from a JSON file")
+    im = sub.add_parser("import")
     im.add_argument("input")
     im.add_argument("--dry-run", action="store_true", dest="dry_run",
                     help="Preview what would be imported, without applying it")
 
     # update
-    sub.add_parser("update", help="Pull the latest version from GitHub")
+    sub.add_parser("update")
 
     # completion
-    co = sub.add_parser("completion", help="Print a shell completion script")
+    co = sub.add_parser("completion")
     co.add_argument("shell", choices=["bash", "zsh", "fish", "powershell"])
 
     # uninstall
-    sub.add_parser("uninstall", help="Remove shalias from PATH and delete all launchers")
+    sub.add_parser("uninstall")
 
     return p
 

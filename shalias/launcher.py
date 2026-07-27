@@ -21,6 +21,21 @@ def write_launcher(alias: str, entry: dict) -> Path:
     return _write_sh(alias, entry)
 
 
+def launcher_paths(alias: str):
+    """Where *alias*'s launcher lives: (live, parked-when-disabled)."""
+    live = BIN_DIR / (f"{alias}.bat" if IS_WINDOWS else alias)
+    return live, live.with_name(live.name + ".disabled")
+
+
+def set_enabled(alias: str, enabled: bool) -> None:
+    """Turn an alias on or off by moving its launcher aside, not deleting it."""
+    live, parked = launcher_paths(alias)
+    if enabled and parked.exists():
+        parked.replace(live)
+    elif not enabled and live.exists():
+        live.replace(parked)
+
+
 def remove_launcher(alias: str) -> None:
     """Delete the launcher file(s) for *alias* (both .bat and bare)."""
     for name in [alias, f"{alias}.bat",
