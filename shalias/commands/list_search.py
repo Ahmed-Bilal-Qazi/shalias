@@ -15,11 +15,15 @@ def cmd_list(args):
     check_update_async(cfg)
 
     aliases      = cfg.get("aliases", {})
+    pattern      = (getattr(args, "pattern", None) or "").lower().strip()
     group_filter = getattr(args, "group",  None)
     sort_by      = getattr(args, "sort",   None)
     fmt          = resolve_format(args)
     check        = getattr(args, "check",  False)
     type_filter  = getattr(args, "type",   None)
+
+    if pattern:
+        aliases = {k: v for k, v in aliases.items() if _matches(k, v, pattern)}
 
     if group_filter:
         aliases = {k: v for k, v in aliases.items()
@@ -50,7 +54,9 @@ def cmd_list(args):
 
     if not aliases:
         print()
-        if group_filter:
+        if pattern:
+            print(f"  Nothing matches '{pattern}'.")
+        elif group_filter:
             print(f"  No aliases in group '{group_filter}'.")
         elif type_filter:
             print(f"  No aliases of type '{type_filter}'.")
@@ -65,33 +71,16 @@ def cmd_list(args):
     format_aliases(aliases, fmt, cmd_name)
 
 
-def cmd_search(args):
-    cfg   = load_config()
-    query = args.query.lower().strip()
-
-    if not query:
-        print(_r("  Search query can't be empty."))
-        sys.exit(1)
-
-    found = {}
-    for alias, info in cfg.get("aliases", {}).items():
-        haystack = " ".join([
-            alias,
-            info.get("description", ""),
-            info.get("target", ""),
-            info.get("script", ""),
-            info.get("group", ""),
-            info.get("interpreter", ""),
-        ]).lower()
-        if query in haystack:
-            found[alias] = info
-
-    if not found:
-        print(f"\n  No results for '{args.query}'.\n")
-        return
-
-    fmt = resolve_format(args)
-    print(f"\n  {len(found)} result(s) for '{_b(args.query)}':\n")
-    format_aliases(found, fmt)
+def _matches(alias: str, info: dict, needle: str) -> bool:
+    """True if *needle* turns up anywhere worth searching on this alias."""
+    haystack = " ".join([
+        alias,
+        info.get("description", ""),
+        info.get("target", ""),
+        info.get("script", ""),
+        info.get("group", ""),
+        info.get("interpreter", ""),
+    ]).lower()
+    return needle in haystack
 
 

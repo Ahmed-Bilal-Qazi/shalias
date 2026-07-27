@@ -24,8 +24,8 @@ from .commands.alias_ops  import (
     cmd_freeze, cmd_unfreeze,
 )
 from .commands.edit        import cmd_edit
-from .commands.list_search import cmd_list, cmd_search
-from .commands.run_ops     import cmd_run, cmd_run_group, cmd_doctor
+from .commands.list_search import cmd_list
+from .commands.run_ops     import cmd_run, cmd_doctor
 from .commands.io_ops      import (
     cmd_export, cmd_import, cmd_update, cmd_config,
     cmd_uninstall, cmd_rename_cmd,
@@ -78,7 +78,9 @@ def build_parser() -> argparse.ArgumentParser:
     rm.add_argument("alias")
 
     # list
-    ls = sub.add_parser("list", help="Show all aliases")
+    ls = sub.add_parser("list", help="Show aliases, optionally filtered")
+    ls.add_argument("pattern",  nargs="?",
+                    help="Only show aliases matching this text")
     ls.add_argument("--group",  "-g",   help="Filter by group")
     ls.add_argument("--type",   "-t",   help="Filter by type: run | open | url | inline | chain")
     ls.add_argument("--sort",   choices=["recent"],
@@ -90,20 +92,11 @@ def build_parser() -> argparse.ArgumentParser:
     # Legacy flag kept for backwards compat
     ls.add_argument("--json",   action="store_true", help=argparse.SUPPRESS)
 
-    # search
-    sr = sub.add_parser("search", help="Search aliases by keyword")
-    sr.add_argument("query")
-    sr.add_argument("--format", "-f", choices=["table", "json", "plain"],
-                    default="table",   help="Output format (default: table)")
-
     # run
     ru = sub.add_parser("run", help="Run one or more aliases by name")
-    ru.add_argument("aliases", nargs="+",  help="Alias name(s)")
+    ru.add_argument("aliases", nargs="*",  help="Alias name(s)")
+    ru.add_argument("--group",    "-g",    help="Run every alias in this group")
     ru.add_argument("--parallel", action="store_true", help="Run them all at the same time")
-
-    # run-group
-    rg = sub.add_parser("run-group", help="Run every alias in a group")
-    rg.add_argument("group")
 
     # doctor
     doc = sub.add_parser("doctor", help="Check for broken aliases")
@@ -171,9 +164,7 @@ COMMANDS = {
     "clone":      cmd_clone,
     "remove":     cmd_remove,
     "list":       cmd_list,
-    "search":     cmd_search,
     "run":        cmd_run,
-    "run-group":  cmd_run_group,
     "doctor":     cmd_doctor,
     "edit":       cmd_edit,
     "rename":     cmd_rename,

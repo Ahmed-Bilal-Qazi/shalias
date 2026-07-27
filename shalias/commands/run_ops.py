@@ -1,5 +1,5 @@
 """
-shalias run, run-group, doctor
+shalias run, doctor
 """
 import shutil
 import subprocess
@@ -15,13 +15,25 @@ from ..launcher import remove_launcher
 
 def cmd_run(args):
     cfg      = load_config()
-    aliases  = args.aliases
     parallel = getattr(args, "parallel", False)
+    group    = getattr(args, "group", None)
 
-    for alias in aliases:
-        if alias not in cfg["aliases"]:
-            print(_r(f"  '{alias}' not found."))
+    if group:
+        aliases = sorted(a for a, i in cfg.get("aliases", {}).items()
+                         if i.get("group") == group)
+        if not aliases:
+            print(_r(f"  No aliases in group '{group}'."))
             sys.exit(1)
+    else:
+        aliases = args.aliases
+        if not aliases:
+            print(_r("  Nothing to run."))
+            print("  Give an alias name, or --group to run a whole group.")
+            sys.exit(1)
+        for alias in aliases:
+            if alias not in cfg["aliases"]:
+                print(_r(f"  '{alias}' not found."))
+                sys.exit(1)
 
     def _run_one(alias: str) -> None:
         launcher = BIN_DIR / (f"{alias}.bat" if IS_WINDOWS else alias)
@@ -36,22 +48,6 @@ def cmd_run(args):
     else:
         for alias in aliases:
             _run_one(alias)
-
-
-def cmd_run_group(args):
-    cfg     = load_config()
-    group   = args.group
-    members = [a for a, i in cfg.get("aliases", {}).items()
-               if i.get("group") == group]
-
-    if not members:
-        print(_r(f"  No aliases in group '{group}'."))
-        sys.exit(1)
-
-    for alias in sorted(members):
-        launcher = BIN_DIR / (f"{alias}.bat" if IS_WINDOWS else alias)
-        if launcher.exists():
-            subprocess.run([str(launcher)], check=False)
 
 
 def cmd_doctor(args):

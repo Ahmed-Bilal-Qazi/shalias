@@ -22,11 +22,14 @@ def cmd_completion(args):
         print(_r(f"  Unknown shell '{shell}'. Options: bash, zsh, fish, powershell"))
 
 
-_CMDS = (
-    "add chain clone remove list search run run-group stats doctor "
-    "edit rename freeze unfreeze export import update completion config "
-    "rename-cmd uninstall"
-)
+# Commands that take an alias name as their first argument.
+_ALIAS_ARG_CMDS = "run edit remove which"
+
+
+def _cmds() -> str:
+    """The real command list, so completions can't drift from the parser."""
+    from ..cli import COMMANDS
+    return " ".join(sorted(COMMANDS))
 
 
 def _bash_completion(names: str) -> str:
@@ -34,7 +37,7 @@ def _bash_completion(names: str) -> str:
 # Add to ~/.bashrc:  source <(shalias completion bash)
 _shalias_complete() {{
   local cur="${{COMP_WORDS[COMP_CWORD]}}"
-  local cmds="{_CMDS}"
+  local cmds="{_cmds()}"
   local aliases="{names}"
   if [ "${{COMP_CWORD}}" -eq 1 ]; then
     COMPREPLY=( $(compgen -W "$cmds" -- "$cur") )
@@ -50,7 +53,7 @@ def _zsh_completion(names: str) -> str:
 # Add to ~/.zshrc:  source <(shalias completion zsh)
 _shalias() {{
   local -a cmds aliases
-  cmds=({_CMDS})
+  cmds=({_cmds()})
   aliases=({names})
   _arguments '1:command:($cmds)' '2:alias:($aliases)'
 }}
@@ -58,20 +61,20 @@ compdef _shalias shalias"""
 
 
 def _fish_completion(aliases: list) -> str:
-    cmds = _CMDS.split()
     lines = ["# shalias fish completion",
              "# Add to ~/.config/fish/config.fish: shalias completion fish | source"]
-    for cmd in cmds:
+    for cmd in _cmds().split():
         lines.append(f"complete -c shalias -f -n '__fish_use_subcommand' -a {cmd}")
     for alias in aliases:
         lines.append(
-            f"complete -c shalias -f -n '__fish_seen_subcommand_from run edit remove rename freeze unfreeze clone' -a {alias}"
+            f"complete -c shalias -f -n "
+            f"'__fish_seen_subcommand_from {_ALIAS_ARG_CMDS}' -a {alias}"
         )
     return "\n".join(lines)
 
 
 def _powershell_completion(aliases: list) -> str:
-    cmds  = _CMDS.split()
+    cmds  = _cmds().split()
     alias_str = ", ".join(f'"{a}"' for a in aliases)
     cmd_str   = ", ".join(f'"{c}"' for c in cmds)
     return f"""# shalias PowerShell completion
