@@ -60,7 +60,7 @@ def cmd_doctor(args):
     do_fix  = getattr(args, "fix", False)
 
     if not aliases:
-        print("\n  No aliases registered — nothing to check.\n")
+        print("\n  No aliases registered - nothing to check.\n")
         return
 
     ok_count = missing_count = warning_count = fixed_count = 0

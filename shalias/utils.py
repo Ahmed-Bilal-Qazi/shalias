@@ -50,7 +50,7 @@ def parse_env(env_list: list) -> dict:
     result = {}
     for item in (env_list or []):
         if "=" not in item:
-            print(_y(f"  Skipping malformed --env value '{item}' — expected KEY=VALUE"))
+            print(_y(f"  Skipping malformed --env value '{item}' - expected KEY=VALUE"))
             continue
         k, _, v = item.partition("=")
         result[k.strip()] = v.strip()
@@ -92,7 +92,7 @@ def detect_interpreter(script_path: Path) -> str:
 # ── Background update check ───────────────────────────────────────────────────
 
 def check_update_async(cfg: dict) -> None:
-    """Fire a version check in the background — never blocks the CLI."""
+    """Fire a version check in the background - never blocks the CLI."""
     meta = cfg.setdefault("meta", {})
     if time.time() - meta.get("last_update_check", 0) < 86400:
         return

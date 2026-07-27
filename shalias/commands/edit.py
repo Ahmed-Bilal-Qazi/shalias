@@ -1,5 +1,5 @@
 """
-shalias edit — interactive or flag-driven alias editing.
+shalias edit - interactive or flag-driven alias editing.
 """
 import sys
 from pathlib import Path

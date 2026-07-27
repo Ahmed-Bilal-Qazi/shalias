@@ -1,1 +1,1 @@
-"""shalias — cross-platform script alias manager."""
+"""shalias - cross-platform script alias manager."""

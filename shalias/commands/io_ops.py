@@ -48,13 +48,13 @@ def cmd_import(args):
         print(_y("  No aliases found in the file."))
         return
 
-    print(f"\n  {'DRY RUN — ' if dry_run else ''}Importing {len(aliases)} alias(es):\n")
+    print(f"\n  {'DRY RUN - ' if dry_run else ''}Importing {len(aliases)} alias(es):\n")
     for alias, info in aliases.items():
         print(f"    {alias:<20} {info.get('type', 'run'):<8} "
               f"{info.get('script', info.get('target', ''))}")
 
     if dry_run:
-        print("\n  (dry run — nothing was changed)\n")
+        print("\n  (dry run - nothing was changed)\n")
         return
 
     cfg = load_config()
@@ -75,7 +75,7 @@ def cmd_update(args):
             remote_src = resp.read().decode("utf-8")
         m = re.search(r'^VERSION\s*=\s*["\']([^"\']+)["\']', remote_src, re.MULTILINE)
         if not m:
-            print(_y("  Couldn't parse the remote version — try again later."))
+            print(_y("  Couldn't parse the remote version - try again later."))
             return
         remote_ver = m.group(1)
         if remote_ver == VERSION:
@@ -127,7 +127,7 @@ def cmd_rename_cmd(args):
         sys.exit(1)
 
     if new_name == "shalias":
-        print(_y("  That's already the default name — nothing to do."))
+        print(_y("  That's already the default name - nothing to do."))
         return
 
     # Build a launcher that just forwards to the real shalias binary

@@ -34,7 +34,7 @@ def cmd_install(args):
         print(_g(f"  Points to: {self_path}"))
         add_to_path()
     else:
-        print(_g("  Installed via pip — shalias is already on your PATH."))
+        print(_g("  Installed via pip - shalias is already on your PATH."))
 
     if not CONFIG_FILE.exists():
         save_config({"aliases": {}, "groups": {}, "meta": {}})

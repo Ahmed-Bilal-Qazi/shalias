@@ -35,7 +35,7 @@ def load_config() -> dict:
         data.setdefault("meta",    {})
         return data
     except (json.JSONDecodeError, IOError):
-        print(_y("  config.json looks corrupted — starting fresh."))
+        print(_y("  config.json looks corrupted - starting fresh."))
         print(_y("  Your backups are in ~/.shalias/backups/ if you need them."))
         return _blank()
 

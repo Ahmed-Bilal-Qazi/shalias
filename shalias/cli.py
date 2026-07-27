@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-shalias — Cross-Platform Script Alias Manager
+shalias - Cross-Platform Script Alias Manager
 Entry point: parses args and dispatches to the right command module.
 
 Changelog
 ---------
 4.0  Modular rewrite (commands/, config, launcher, path_manager, utils)
-     rename-cmd support · --format table/json/plain for list/stats/search
-     fish + PowerShell completion · --type filter for list
-3.0  Auto-detect type · alias chaining · env var injection · inline commands
-     clone · --cwd · instant list · opt-in --check
-2.0  Parallel execution · groups · usage stats · locking · JSON output
-     dry-run import · shell autocompletion · doctor
+     rename-cmd support - --format table/json/plain for list/stats/search
+     fish + PowerShell completion - --type filter for list
+3.0  Auto-detect type - alias chaining - env var injection - inline commands
+     clone - --cwd - instant list - opt-in --check
+2.0  Parallel execution - groups - usage stats - locking - JSON output
+     dry-run import - shell autocompletion - doctor
 1.0  Initial release
 """
 import argparse
@@ -38,7 +38,7 @@ from .commands.shell_ops   import cmd_completion
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="shalias",
-        description="shalias — run your scripts from anywhere",
+        description="shalias - run your scripts from anywhere",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--version", action="version", version=f"shalias {VERSION}")
