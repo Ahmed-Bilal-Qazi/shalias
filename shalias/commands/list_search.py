@@ -1,11 +1,11 @@
 """
-shalias list, search, stats
+shalias list, search
 """
 import sys
 
 from ..colors import _b, _d, _g, _r, _y
 from ..config import load_config, get_command_name
-from ..utils import check_update_async, format_aliases, format_stats, resolve_format
+from ..utils import check_update_async, format_aliases, resolve_format
 from pathlib import Path
 
 
@@ -31,10 +31,7 @@ def cmd_list(args):
 
     if sort_by == "recent":
         aliases = dict(sorted(aliases.items(),
-                              key=lambda x: x[1].get("last_used", ""), reverse=True))
-    elif sort_by == "uses":
-        aliases = dict(sorted(aliases.items(),
-                              key=lambda x: x[1].get("use_count", 0), reverse=True))
+                              key=lambda x: x[1].get("added", ""), reverse=True))
     else:
         aliases = dict(sorted(aliases.items()))
 
@@ -98,13 +95,3 @@ def cmd_search(args):
     format_aliases(found, fmt)
 
 
-def cmd_stats(args):
-    cfg     = load_config()
-    aliases = cfg.get("aliases", {})
-
-    if not aliases:
-        print("\n  No aliases yet.\n")
-        return
-
-    fmt = resolve_format(args)
-    format_stats(aliases, fmt)

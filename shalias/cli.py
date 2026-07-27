@@ -24,14 +24,13 @@ from .commands.alias_ops  import (
     cmd_freeze, cmd_unfreeze,
 )
 from .commands.edit        import cmd_edit
-from .commands.list_search import cmd_list, cmd_search, cmd_stats
+from .commands.list_search import cmd_list, cmd_search
 from .commands.run_ops     import cmd_run, cmd_run_group, cmd_doctor
 from .commands.io_ops      import (
     cmd_export, cmd_import, cmd_update, cmd_config,
     cmd_uninstall, cmd_rename_cmd,
 )
 from .commands.shell_ops   import cmd_completion
-from .commands.track        import cmd_track
 
 
 # ── Argument parser ───────────────────────────────────────────────────────────
@@ -82,8 +81,8 @@ def build_parser() -> argparse.ArgumentParser:
     ls = sub.add_parser("list", help="Show all aliases")
     ls.add_argument("--group",  "-g",   help="Filter by group")
     ls.add_argument("--type",   "-t",   help="Filter by type: run | open | url | inline | chain")
-    ls.add_argument("--sort",   choices=["recent", "uses"],
-                    help="Sort by most recent or most used")
+    ls.add_argument("--sort",   choices=["recent"],
+                    help="Sort by most recently added")
     ls.add_argument("--check",  action="store_true",
                     help="Also verify that file targets still exist")
     ls.add_argument("--format", "-f",   choices=["table", "json", "plain"],
@@ -105,11 +104,6 @@ def build_parser() -> argparse.ArgumentParser:
     # run-group
     rg = sub.add_parser("run-group", help="Run every alias in a group")
     rg.add_argument("group")
-
-    # stats
-    st = sub.add_parser("stats", help="Show usage statistics")
-    st.add_argument("--format", "-f", choices=["table", "json", "plain"],
-                    default="table",   help="Output format (default: table)")
 
     # doctor
     doc = sub.add_parser("doctor", help="Check for broken aliases")
@@ -165,10 +159,6 @@ def build_parser() -> argparse.ArgumentParser:
     # uninstall
     sub.add_parser("uninstall", help="Remove shalias from PATH and delete all launchers")
 
-    # internal — hidden from help
-    tr = sub.add_parser("_track", help=argparse.SUPPRESS)
-    tr.add_argument("alias")
-
     return p
 
 
@@ -184,7 +174,6 @@ COMMANDS = {
     "search":     cmd_search,
     "run":        cmd_run,
     "run-group":  cmd_run_group,
-    "stats":      cmd_stats,
     "doctor":     cmd_doctor,
     "edit":       cmd_edit,
     "rename":     cmd_rename,
@@ -197,7 +186,6 @@ COMMANDS = {
     "config":     cmd_config,
     "rename-cmd": cmd_rename_cmd,
     "uninstall":  cmd_uninstall,
-    "_track":     cmd_track,
 }
 
 

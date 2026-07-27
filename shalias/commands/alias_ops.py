@@ -11,6 +11,7 @@ from ..utils import (
     check_alias_free,
     detect_interpreter,
     detect_type,
+    now_stamp,
     parse_env,
     print_alias_summary,
     validate_alias,
@@ -38,7 +39,7 @@ def cmd_add(args):
             "description": args.description or "",
             "env":         parse_env(getattr(args, "env", None) or []),
             "cwd":         getattr(args, "cwd", "") or "",
-            "use_count":   0,
+            "added":       now_stamp(),
         }
         if getattr(args, "group", None):
             entry["group"] = args.group
@@ -75,7 +76,7 @@ def cmd_add(args):
         entry = {
             "type": "url", "target": raw,
             "description": args.description or "",
-            "use_count": 0, "env": {}, "cwd": "",
+            "added": now_stamp(), "env": {}, "cwd": "",
         }
         if group:
             entry["group"] = group
@@ -100,7 +101,7 @@ def cmd_add(args):
 
     base = {
         "description": args.description or "",
-        "use_count":   0,
+        "added":       now_stamp(),
         "env":         parse_env(getattr(args, "env", None) or []),
         "cwd":         getattr(args, "cwd", "") or "",
     }
@@ -135,7 +136,7 @@ def cmd_chain(args):
         "type":        "chain",
         "chain":       steps,
         "description": args.description or "",
-        "use_count":   0,
+        "added":       now_stamp(),
         "env":         {},
         "cwd":         "",
     }
@@ -159,8 +160,7 @@ def cmd_clone(args):
     check_alias_free(dst, cfg)
 
     entry = dict(cfg["aliases"][src])
-    entry["use_count"] = 0
-    entry.pop("last_used", None)
+    entry["added"] = now_stamp()
 
     cfg["aliases"][dst] = entry
     save_config(cfg)

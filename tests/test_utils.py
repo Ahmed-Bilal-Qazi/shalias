@@ -91,7 +91,7 @@ class TestFormat(unittest.TestCase):
 
     def test_format_aliases_json(self):
         from shalias.utils import format_aliases
-        aliases = {"myapp": {"type": "run", "script": "/tmp/app.py", "use_count": 3}}
+        aliases = {"myapp": {"type": "run", "script": "/tmp/app.py"}}
         captured = io.StringIO()
         with patch("sys.stdout", captured):
             format_aliases(aliases, "json")
@@ -100,36 +100,13 @@ class TestFormat(unittest.TestCase):
 
     def test_format_aliases_plain(self):
         from shalias.utils import format_aliases
-        aliases = {"gl": {"type": "inline", "target": "git log", "use_count": 0}}
+        aliases = {"gl": {"type": "inline", "target": "git log"}}
         captured = io.StringIO()
         with patch("sys.stdout", captured):
             format_aliases(aliases, "plain")
         out = captured.getvalue()
         self.assertIn("gl",     out)
         self.assertIn("inline", out)
-
-    def test_format_stats_json(self):
-        from shalias.utils import format_stats
-        aliases = {
-            "myapp":  {"use_count": 5, "last_used": "2025-01-01T00:00:00+00:00"},
-            "unused": {"use_count": 0},
-        }
-        captured = io.StringIO()
-        with patch("sys.stdout", captured):
-            format_stats(aliases, "json")
-        data = json.loads(captured.getvalue())
-        self.assertEqual(data["total_runs"], 5)
-        self.assertEqual(len(data["aliases"]), 1)
-
-    def test_format_stats_plain(self):
-        from shalias.utils import format_stats
-        aliases = {"gl": {"use_count": 2, "last_used": "2025-06-01T00:00:00+00:00"}}
-        captured = io.StringIO()
-        with patch("sys.stdout", captured):
-            format_stats(aliases, "plain")
-        out = captured.getvalue()
-        self.assertIn("gl", out)
-        self.assertIn("2",  out)
 
 
 if __name__ == "__main__":

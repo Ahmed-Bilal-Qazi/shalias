@@ -2,12 +2,10 @@
 Creates and removes the tiny shell-script (or .bat) launchers that
 live in ~/.shalias/bin/ and make aliases work from anywhere.
 
-Each launcher does three things in order:
-  1. Fire a background _track call to increment use_count
-  2. Set any baked-in env vars
-  3. cd to the requested working directory, then exec the target
+Each launcher does two things in order:
+  1. Set any baked-in env vars
+  2. cd to the requested working directory, then exec the target
 """
-import sys
 from pathlib import Path
 
 from .constants import BIN_DIR, IS_WINDOWS, IS_LINUX
@@ -42,10 +40,6 @@ def _write_bat(alias: str, entry: dict) -> Path:
     cwd        = entry.get("cwd", "")
     chain_list = entry.get("chain", [])
 
-    self_path = Path(sys.argv[0]).resolve()
-    py        = sys.executable
-
-    track = f'"{py}" "{self_path}" _track {alias} 2>nul\n'
     env_b = _env_win(env)
 
     if atype == "run":
@@ -65,7 +59,7 @@ def _write_bat(alias: str, entry: dict) -> Path:
     else:
         raise ValueError(f"Unknown alias type: {atype}")
 
-    path.write_text(f"@echo off\n{track}{env_b}{cwd_b}{body}", encoding="utf-8")
+    path.write_text(f"@echo off\n{env_b}{cwd_b}{body}", encoding="utf-8")
     return path
 
 
@@ -80,12 +74,8 @@ def _write_sh(alias: str, entry: dict) -> Path:
     cwd        = entry.get("cwd", "")
     chain_list = entry.get("chain", [])
 
-    self_path = Path(sys.argv[0]).resolve()
-    py        = sys.executable
-    opener    = "xdg-open" if IS_LINUX else "open"
-
-    track = f'"{py}" "{self_path}" _track {alias} 2>/dev/null &\n'
-    env_b = _env_unix(env)
+    opener = "xdg-open" if IS_LINUX else "open"
+    env_b  = _env_unix(env)
 
     if atype == "run":
         cwd_b = _cwd_unix(cwd, target)
@@ -105,7 +95,7 @@ def _write_sh(alias: str, entry: dict) -> Path:
     else:
         raise ValueError(f"Unknown alias type: {atype}")
 
-    path.write_text(f"#!/usr/bin/env bash\n{track}{env_b}{cwd_b}{body}", encoding="utf-8")
+    path.write_text(f"#!/usr/bin/env bash\n{env_b}{cwd_b}{body}", encoding="utf-8")
     path.chmod(0o755)
     return path
 

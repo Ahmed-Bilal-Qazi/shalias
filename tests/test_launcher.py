@@ -85,6 +85,13 @@ class TestLauncher(unittest.TestCase):
         with self.assertRaises(ValueError):
             self._write("bad", entry)
 
+    @unittest.skipUnless(UNIX, "Unix only")
+    def test_no_tracking_preamble(self):
+        entry = {"type": "run", "script": "/tmp/x.py",
+                 "interpreter": "python3", "env": {}, "cwd": ""}
+        content = self._write("x", entry).read_text()
+        self.assertNotIn("_track", content)
+
 
 class TestWindowsLauncher(unittest.TestCase):
 
@@ -169,6 +176,13 @@ class TestWindowsLauncher(unittest.TestCase):
         entry = {"type": "bogus", "env": {}, "cwd": ""}
         with self.assertRaises(ValueError):
             self._write("bad", entry)
+
+    @unittest.skipUnless(WINDOWS, "Windows only")
+    def test_no_tracking_preamble(self):
+        entry = {"type": "run", "script": r"C:\s\x.py",
+                 "interpreter": "python", "env": {}, "cwd": ""}
+        content = self._write("x", entry).read_text()
+        self.assertNotIn("_track", content)
 
 
 if __name__ == "__main__":

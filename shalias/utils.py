@@ -29,6 +29,11 @@ from .constants import (
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
+def now_stamp() -> str:
+    """UTC timestamp we record on new aliases, so `list --sort recent` works."""
+    return datetime.now(timezone.utc).isoformat()
+
+
 def validate_alias(name: str) -> bool:
     return bool(name) and bool(_SAFE_NAME.match(name))
 
@@ -116,22 +121,6 @@ def check_update_async(cfg: dict) -> None:
     threading.Thread(target=_do, daemon=True).start()
 
 
-# ── Usage tracking (called by launchers via `shalias _track <alias>`) ─────────
-
-def track_usage(alias: str) -> None:
-    """Silently increment use_count and last_used for alias."""
-    try:
-        from .config import load_config, save_config
-        cfg = load_config()
-        entry = cfg["aliases"].get(alias)
-        if entry:
-            entry["use_count"] = entry.get("use_count", 0) + 1
-            entry["last_used"] = datetime.now(timezone.utc).isoformat()
-            save_config(cfg)
-    except Exception:
-        pass
-
-
 # ── Output formatting ─────────────────────────────────────────────────────────
 
 def print_alias_summary(alias: str, entry: dict, launcher: Path) -> None:
@@ -198,14 +187,13 @@ def format_aliases(aliases: dict, fmt: str, cmd_name: str = "shalias") -> None:
 
     # ── table (default) ───────────────────────────────────────────────────────
     from .colors import _cy
-    header  = f"  {'ALIAS':<20} {'TYPE':<8} {'STATUS':<8} {'USES':<6} {'GROUP':<14} DESCRIPTION / TARGET"
-    divider = "  " + "-" * 95
+    header  = f"  {'ALIAS':<20} {'TYPE':<8} {'STATUS':<8} {'GROUP':<14} DESCRIPTION / TARGET"
+    divider = "  " + "-" * 89
 
     def _row(alias: str, info: dict) -> None:
         atype  = info.get("type", "run")
         desc   = info.get("description", "") or ""
         grp    = info.get("group", "")
-        uses   = str(info.get("use_count", 0))
         lock   = " [locked]" if info.get("locked") else ""
         target = (
             info.get("target", "") if atype in ("url", "inline")
@@ -217,7 +205,7 @@ def format_aliases(aliases: dict, fmt: str, cmd_name: str = "shalias") -> None:
         label    = desc[:30] if desc else _d(target[:40])
         raw_stat = "ok" if ok else "missing"
         pad      = " " * max(0, 8 - len(raw_stat))
-        print(f"  {alias + lock:<20} {atype:<8} {status}{pad} {uses:<6} {grp:<14} {label}")
+        print(f"  {alias + lock:<20} {atype:<8} {status}{pad} {grp:<14} {label}")
 
     grouped   = {}
     ungrouped = {}
@@ -245,46 +233,4 @@ def format_aliases(aliases: dict, fmt: str, cmd_name: str = "shalias") -> None:
         f"  *  {cmd_name} list --check"
         f"  *  {cmd_name} doctor"
     ))
-    print()
-
-
-def format_stats(aliases: dict, fmt: str) -> None:
-    """Render usage stats according to *fmt* (table | json | plain)."""
-    tracked = [(a, i) for a, i in aliases.items() if i.get("use_count", 0) > 0]
-    tracked.sort(key=lambda x: x[1].get("use_count", 0), reverse=True)
-    total = sum(i.get("use_count", 0) for i in aliases.values())
-
-    if fmt == "json":
-        output = {
-            "total_runs": total,
-            "aliases": [
-                {
-                    "alias":     a,
-                    "use_count": i.get("use_count", 0),
-                    "last_used": i.get("last_used", None),
-                }
-                for a, i in tracked
-            ],
-        }
-        print(json.dumps(output, indent=2))
-        return
-
-    if fmt == "plain":
-        for alias, info in tracked:
-            print(f"{alias}\t{info.get('use_count', 0)}\t{info.get('last_used', 'never')}")
-        return
-
-    # table
-    print()
-    print(_b("  Usage Stats"))
-    print("  " + "-" * 55)
-    if not tracked:
-        print("  Nothing run yet — go use some aliases!")
-    else:
-        for alias, info in tracked:
-            bar  = "#" * min(info["use_count"], 30)
-            last = info.get("last_used", "never")[:10]
-            print(f"  {alias:<20} {bar:<32} {info['use_count']} runs  (last: {last})")
-    print()
-    print(f"  Total: {total} runs across {len(aliases)} aliases")
     print()

@@ -18,7 +18,7 @@ from ..constants import (
 )
 from ..launcher import write_launcher, remove_launcher
 from ..path_manager import remove_from_path
-from ..utils import validate_alias
+from ..utils import now_stamp, validate_alias
 
 
 def cmd_export(args):
@@ -140,7 +140,7 @@ def cmd_rename_cmd(args):
         "script":      str(cli_path),
         "interpreter": py,
         "description": f"shalias alias: {new_name}",
-        "use_count":   0,
+        "added":       now_stamp(),
         "env":         {},
         "cwd":         "",
     }

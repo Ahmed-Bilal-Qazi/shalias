@@ -7,6 +7,7 @@ from ..config import CONFIG_FILE, save_config
 from ..constants import BACKUP_DIR, BIN_DIR, BANNER, PLATFORM, SHALIAS_DIR, IS_WINDOWS
 from ..launcher import write_launcher
 from ..path_manager import shell_configs, add_to_path
+from ..utils import now_stamp
 
 
 def cmd_install(args):
@@ -26,7 +27,7 @@ def cmd_install(args):
         interp = "python" if IS_WINDOWS else "python3"
         entry  = {
             "type": "run", "script": str(self_path), "interpreter": interp,
-            "description": "shalias itself", "use_count": 0, "env": {}, "cwd": "",
+            "description": "shalias itself", "added": now_stamp(), "env": {}, "cwd": "",
         }
         launcher = write_launcher("shalias", entry)
         print(_g(f"  Launcher : {launcher}"))

@@ -142,7 +142,7 @@ class TestCmdRename(_EnvMixin, unittest.TestCase):
         cfg = self.load()
         cfg["aliases"]["orig"] = {
             "type": "run", "script": str(script),
-            "interpreter": "python3", "env": {}, "cwd": "", "use_count": 0,
+            "interpreter": "python3", "env": {}, "cwd": "",
         }
         self.save(cfg)
         # Create the launcher so remove_launcher has something to remove
@@ -195,44 +195,14 @@ class TestCmdChain(_EnvMixin, unittest.TestCase):
 
 # ── stats --format ────────────────────────────────────────────────────────────
 
-class TestStatsFormat(_EnvMixin, unittest.TestCase):
-
-    def test_stats_json(self):
-        cfg = self.load()
-        cfg["aliases"]["used"] = {
-            "type": "inline", "target": "echo",
-            "use_count": 7, "last_used": "2025-01-01T00:00:00+00:00",
-        }
-        self.save(cfg)
-        captured = io.StringIO()
-        from shalias.commands.list_search import cmd_stats
-        with patch("sys.stdout", captured):
-            cmd_stats(_ns(format="json"))
-        data = json.loads(captured.getvalue())
-        self.assertEqual(data["total_runs"], 7)
-
-    def test_stats_plain(self):
-        cfg = self.load()
-        cfg["aliases"]["gl"] = {
-            "type": "inline", "target": "git log",
-            "use_count": 3, "last_used": "2025-01-02T00:00:00+00:00",
-        }
-        self.save(cfg)
-        captured = io.StringIO()
-        from shalias.commands.list_search import cmd_stats
-        with patch("sys.stdout", captured):
-            cmd_stats(_ns(format="plain"))
-        self.assertIn("gl", captured.getvalue())
-
-
 # ── list --type filter ────────────────────────────────────────────────────────
 
 class TestListTypeFilter(_EnvMixin, unittest.TestCase):
 
     def test_filters_by_type(self):
         cfg = self.load()
-        cfg["aliases"]["myscript"] = {"type": "run",  "script": "/tmp/x.py", "use_count": 0}
-        cfg["aliases"]["myurl"]    = {"type": "url",  "target": "https://ex.com", "use_count": 0}
+        cfg["aliases"]["myscript"] = {"type": "run",  "script": "/tmp/x.py"}
+        cfg["aliases"]["myurl"]    = {"type": "url",  "target": "https://ex.com"}
         self.save(cfg)
         captured = io.StringIO()
         from shalias.commands.list_search import cmd_list
@@ -269,7 +239,7 @@ class TestExportImport(_EnvMixin, unittest.TestCase):
         cfg = self.load()
         cfg["aliases"]["x"] = {
             "type": "inline", "target": "echo x",
-            "use_count": 0, "env": {}, "cwd": "",
+             "env": {}, "cwd": "",
         }
         self.save(cfg)
         backup = self.td / "backup.json"
@@ -285,7 +255,7 @@ class TestExportImport(_EnvMixin, unittest.TestCase):
     def test_dry_run_does_not_apply(self):
         backup = self.td / "b.json"
         backup.write_text(json.dumps({"aliases": {
-            "drytest": {"type": "inline", "target": "echo", "use_count": 0}
+            "drytest": {"type": "inline", "target": "echo"}
         }}), encoding="utf-8")
         from shalias.commands.io_ops import cmd_import
         cmd_import(types.SimpleNamespace(input=str(backup), dry_run=True))
