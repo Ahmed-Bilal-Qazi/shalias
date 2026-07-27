@@ -1,5 +1,5 @@
 """
-add, chain, clone, remove
+add, remove
 """
 import sys
 
@@ -25,6 +25,44 @@ from pathlib import Path
 def cmd_add(args):
     cfg = load_config()
     check_update_async(cfg)
+
+    # ── chain of other aliases ────────────────────────────────────────────────
+    steps = getattr(args, "chain", None)
+    if steps:
+        name = args.alias
+        if not name:
+            print(_r("  --chain needs a name for the new alias."))
+            print("  Try: shalias add --chain build deploy --alias release")
+            sys.exit(1)
+        check_alias_free(name, cfg)
+
+        missing = [s for s in steps if s not in cfg["aliases"]]
+        if missing:
+            print(_r(f"  These aliases don't exist yet: {', '.join(missing)}"))
+            print("  Add them first, then chain them.")
+            sys.exit(1)
+
+        entry = {
+            "type":        "chain",
+            "chain":       list(steps),
+            "description": args.description or "",
+            "added":       now_stamp(),
+            "env":         {},
+            "cwd":         "",
+        }
+        if getattr(args, "group", None):
+            entry["group"] = args.group
+
+        cfg["aliases"][name] = entry
+        save_config(cfg)
+        launcher = write_launcher(name, entry)
+        print_alias_summary(name, entry, launcher)
+        return
+
+    if not getattr(args, "script", None):
+        print(_r("  Nothing to add."))
+        print("  Give a script path, a URL, or --chain to combine aliases.")
+        sys.exit(1)
 
     # ── inline command ────────────────────────────────────────────────────────
     if getattr(args, "inline", False):
@@ -118,55 +156,6 @@ def cmd_add(args):
     save_config(cfg)
     launcher = write_launcher(alias, entry)
     print_alias_summary(alias, entry, launcher)
-
-
-def cmd_chain(args):
-    cfg     = load_config()
-    name    = args.name
-    steps   = args.run
-    check_alias_free(name, cfg)
-
-    missing = [s for s in steps if s not in cfg["aliases"]]
-    if missing:
-        print(_r(f"  These aliases don't exist yet: {', '.join(missing)}"))
-        print("  Add them first, then chain them.")
-        sys.exit(1)
-
-    entry = {
-        "type":        "chain",
-        "chain":       steps,
-        "description": args.description or "",
-        "added":       now_stamp(),
-        "env":         {},
-        "cwd":         "",
-    }
-    if getattr(args, "group", None):
-        entry["group"] = args.group
-
-    cfg["aliases"][name] = entry
-    save_config(cfg)
-    launcher = write_launcher(name, entry)
-    print_alias_summary(name, entry, launcher)
-
-
-def cmd_clone(args):
-    cfg = load_config()
-    src = args.source
-    dst = args.dest
-
-    if src not in cfg["aliases"]:
-        print(_r(f"  '{src}' doesn't exist. Nothing to clone."))
-        sys.exit(1)
-    check_alias_free(dst, cfg)
-
-    entry = dict(cfg["aliases"][src])
-    entry["added"] = now_stamp()
-
-    cfg["aliases"][dst] = entry
-    save_config(cfg)
-    launcher = write_launcher(dst, entry)
-    print(_g(f"\n  + Cloned '{src}' -> '{dst}'"))
-    print(f"    Tweak it with: shalias edit {dst}\n")
 
 
 def cmd_remove(args):

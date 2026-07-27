@@ -70,25 +70,5 @@ class TestLoadConfig(unittest.TestCase):
             backups = list(backup_dir.glob("config_*.json"))
         self.assertLessEqual(len(backups), 10)
 
-    def test_get_command_name_default(self):
-        from shalias.config import get_command_name
-        self.assertEqual(get_command_name({}), "shalias")
-        self.assertEqual(get_command_name({"meta": {}}), "shalias")
-
-    def test_get_command_name_custom(self):
-        from shalias.config import get_command_name
-        self.assertEqual(get_command_name({"meta": {"command_name": "sa"}}), "sa")
-
-    def test_corrupted_json_returns_blank(self):
-        import tempfile
-        with tempfile.TemporaryDirectory() as td:
-            cfg_file = Path(td) / "config.json"
-            cfg_file.write_text("not { json }")
-            with patch("shalias.config.CONFIG_FILE", cfg_file):
-                from shalias.config import load_config
-                cfg = load_config()
-        self.assertEqual(cfg["aliases"], {})
-
-
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,5 @@
 """
-shalias export, import, update, config, uninstall, rename-cmd
+shalias export, import, update, uninstall
 """
 import json
 import os
@@ -12,7 +12,7 @@ import urllib.request
 from pathlib import Path
 
 from ..colors import _g, _r, _y
-from ..config import backup_config, load_config, save_config, get_command_name
+from ..config import backup_config, load_config, save_config
 from ..constants import (
     BIN_DIR, CONFIG_FILE, IS_MACOS, IS_WINDOWS, UPDATE_URL, VERSION,
 )
@@ -89,16 +89,6 @@ def cmd_update(args):
         print(_r(f"  Update failed: {e}"))
 
 
-def cmd_config(args):
-    if IS_WINDOWS:
-        subprocess.run(["notepad", str(CONFIG_FILE)])
-    elif IS_MACOS:
-        subprocess.run(["open", str(CONFIG_FILE)])
-    else:
-        editor = os.environ.get("EDITOR", "nano")
-        subprocess.run([editor, str(CONFIG_FILE)])
-
-
 def cmd_uninstall(args):
     print("\n  Removing shalias from PATH...")
     remove_from_path()
@@ -113,51 +103,3 @@ def cmd_uninstall(args):
     print()
 
 
-def cmd_rename_cmd(args):
-    """
-    Register a new command name so users can call shalias by a shorter name.
-    Creates a thin launcher wrapper in ~/.shalias/bin/<name>.
-    The original 'shalias' command is untouched as a fallback.
-    """
-    new_name = args.name.strip()
-
-    if not validate_alias(new_name):
-        print(_r(f"  '{new_name}' isn't a valid command name."))
-        print("  Use only letters, numbers, hyphens (-), and underscores (_).")
-        sys.exit(1)
-
-    if new_name == "shalias":
-        print(_y("  That's already the default name - nothing to do."))
-        return
-
-    # Build a launcher that just forwards to the real shalias binary
-    import shalias.cli as _cli_mod
-    cli_path = Path(_cli_mod.__file__).resolve()
-    py       = sys.executable
-
-    entry = {
-        "type":        "run",
-        "script":      str(cli_path),
-        "interpreter": py,
-        "description": f"shalias alias: {new_name}",
-        "added":       now_stamp(),
-        "env":         {},
-        "cwd":         "",
-    }
-    launcher = write_launcher(new_name, entry)
-
-    # Persist the preferred name so help text and hints use it
-    cfg = load_config()
-    old_name = get_command_name(cfg)
-    cfg.setdefault("meta", {})["command_name"] = new_name
-
-    # Remove old custom launcher if the name changed
-    if old_name not in ("shalias", new_name):
-        remove_launcher(old_name)
-
-    save_config(cfg)
-
-    print(_g(f"\n  + '{new_name}' is now an alias for shalias"))
-    print(f"    Launcher : {launcher}")
-    print(f"    You can now use '{new_name}' everywhere instead of 'shalias'.")
-    print(f"    The original 'shalias' command still works as a fallback.\n")

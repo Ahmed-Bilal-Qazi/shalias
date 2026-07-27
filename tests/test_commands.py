@@ -240,22 +240,37 @@ class TestLockAndEnable(_EnvMixin, unittest.TestCase):
 
 class TestCmdChain(_EnvMixin, unittest.TestCase):
 
-    @unittest.skipUnless(UNIX, "Unix only")
-    def test_chain(self):
+    def _seed_two(self):
         cfg = self.load()
         cfg["aliases"]["a"] = {"type": "inline", "target": "echo a", "env": {}, "cwd": ""}
         cfg["aliases"]["b"] = {"type": "inline", "target": "echo b", "env": {}, "cwd": ""}
         self.save(cfg)
-        from shalias.commands.alias_ops import cmd_chain
-        cmd_chain(types.SimpleNamespace(
-            name="ab", run=["a", "b"], group=None, description=None
-        ))
+
+    def test_chain(self):
+        from shalias.commands.alias_ops import cmd_add
+        self._seed_two()
+        cmd_add(_ns(alias="ab", chain=["a", "b"]))
         cfg = self.load()
         self.assertEqual(cfg["aliases"]["ab"]["type"],  "chain")
         self.assertEqual(cfg["aliases"]["ab"]["chain"], ["a", "b"])
 
+    def test_chain_needs_an_alias_name(self):
+        from shalias.commands.alias_ops import cmd_add
+        self._seed_two()
+        with self.assertRaises(SystemExit):
+            cmd_add(_ns(chain=["a", "b"]))
 
-# ── stats --format ────────────────────────────────────────────────────────────
+    def test_chain_rejects_unknown_steps(self):
+        from shalias.commands.alias_ops import cmd_add
+        self._seed_two()
+        with self.assertRaises(SystemExit):
+            cmd_add(_ns(alias="ab", chain=["a", "nope"]))
+
+    def test_add_with_nothing_to_add(self):
+        from shalias.commands.alias_ops import cmd_add
+        with self.assertRaises(SystemExit):
+            cmd_add(_ns(alias="x"))
+
 
 # ── list --type filter ────────────────────────────────────────────────────────
 
@@ -275,22 +290,51 @@ class TestListTypeFilter(_EnvMixin, unittest.TestCase):
         self.assertNotIn("myscript", out)
 
 
-# ── rename-cmd ────────────────────────────────────────────────────────────────
+# ── which ─────────────────────────────────────────────────────────────────────
 
-class TestRenameCmd(_EnvMixin, unittest.TestCase):
+class TestCmdWhich(_EnvMixin, unittest.TestCase):
 
-    @unittest.skipUnless(UNIX, "Unix only")
-    def test_rename_cmd_stores_name(self):
-        from shalias.commands.io_ops import cmd_rename_cmd
-        cmd_rename_cmd(types.SimpleNamespace(name="sa"))
+    def _seed(self):
         cfg = self.load()
-        self.assertEqual(cfg["meta"]["command_name"], "sa")
-        self.assertTrue((self.bin_dir / "sa").exists())
+        cfg["aliases"]["x"] = {"type": "inline", "target": "echo hi",
+                               "env": {}, "cwd": ""}
+        self.save(cfg)
 
-    def test_rename_cmd_invalid_name(self):
-        from shalias.commands.io_ops import cmd_rename_cmd
+    def _run(self):
+        from shalias.commands.which import cmd_which
+        out = io.StringIO()
+        with patch("sys.stdout", out):
+            cmd_which(_ns(alias="x"))
+        return out.getvalue()
+
+    def test_unknown_alias_exits(self):
+        from shalias.commands.which import cmd_which
         with self.assertRaises(SystemExit):
-            cmd_rename_cmd(types.SimpleNamespace(name="my cmd"))
+            cmd_which(_ns(alias="nope"))
+
+    def test_shows_type_and_target(self):
+        self._seed()
+        out = self._run()
+        self.assertIn("inline",  out)
+        self.assertIn("echo hi", out)
+
+    def test_reports_missing_launcher(self):
+        self._seed()
+        self.assertIn("missing", self._run())
+
+    def test_reports_launcher_path(self):
+        from shalias.launcher import write_launcher
+        self._seed()
+        write_launcher("x", self.load()["aliases"]["x"])
+        self.assertIn("launcher", self._run())
+
+    def test_reports_disabled(self):
+        from shalias.commands.edit import cmd_edit
+        from shalias.launcher import write_launcher
+        self._seed()
+        write_launcher("x", self.load()["aliases"]["x"])
+        cmd_edit(_edit_ns("x", disable=True))
+        self.assertIn("disabled", self._run())
 
 
 # ── export / import ───────────────────────────────────────────────────────────

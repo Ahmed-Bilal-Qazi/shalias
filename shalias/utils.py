@@ -168,7 +168,7 @@ def resolve_format(args) -> str:
     return "table"
 
 
-def format_aliases(aliases: dict, fmt: str, cmd_name: str = "shalias") -> None:
+def format_aliases(aliases: dict, fmt: str) -> None:
     """Render *aliases* according to *fmt* (table | json | plain)."""
     if fmt == "json":
         print(json.dumps(aliases, indent=2))
@@ -229,8 +229,8 @@ def format_aliases(aliases: dict, fmt: str, cmd_name: str = "shalias") -> None:
     print()
     print(_d(
         f"  {total} alias{'es' if total != 1 else ''}"
-        f"  *  {cmd_name} search <term>"
-        f"  *  {cmd_name} list --check"
-        f"  *  {cmd_name} doctor"
+        "  *  shalias list <term>"
+        "  *  shalias list --check"
+        "  *  shalias doctor"
     ))
     print()

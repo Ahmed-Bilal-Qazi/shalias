@@ -6,8 +6,10 @@ Entry point: parses args and dispatches to the right command module.
 Changelog
 ---------
 4.0  Modular rewrite (commands/, config, launcher, path_manager, utils)
-     rename-cmd support - --format table/json/plain for list/stats/search
-     fish + PowerShell completion - --type filter for list
+     26 commands trimmed to 13 - search folded into list, run-group into
+     run --group, rename/freeze/unfreeze into edit flags
+     usage tracking dropped - it cost ~190ms per alias call on Windows
+     new: which, edit --enable/--disable, install-aware update
 3.0  Auto-detect type - alias chaining - env var injection - inline commands
      clone - --cwd - instant list - opt-in --check
 2.0  Parallel execution - groups - usage stats - locking - JSON output
@@ -19,17 +21,15 @@ import sys
 
 from .constants import VERSION
 from .commands.install    import cmd_install
-from .commands.alias_ops  import (
-    cmd_add, cmd_chain, cmd_clone, cmd_remove,
-)
+from .commands.alias_ops  import cmd_add, cmd_remove
 from .commands.edit        import cmd_edit
 from .commands.list_search import cmd_list
 from .commands.run_ops     import cmd_run, cmd_doctor
 from .commands.io_ops      import (
-    cmd_export, cmd_import, cmd_update, cmd_config,
-    cmd_uninstall, cmd_rename_cmd,
+    cmd_export, cmd_import, cmd_update, cmd_uninstall,
 )
 from .commands.shell_ops   import cmd_completion
+from .commands.which       import cmd_which
 
 
 # ── Argument parser ───────────────────────────────────────────────────────────
@@ -48,7 +48,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     # add
     a = sub.add_parser("add", help="Register a script, file, URL, or command as an alias")
-    a.add_argument("script",                          help="Script/file path, URL, or shell command (with --inline)")
+    a.add_argument("script",        nargs="?",        help="Script/file path, URL, or shell command (with --inline)")
+    a.add_argument("--chain",       nargs="+", metavar="ALIAS",
+                   help="Make this alias run other aliases, in order")
     a.add_argument("--alias",       "-a",             help="Name for the command (default: filename stem)")
     a.add_argument("--type",        "-t",             help="Override auto-detected type: run | open | url")
     a.add_argument("--interpreter", "-i",             help="Override interpreter (e.g. python3, node)")
@@ -58,19 +60,6 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Bake an env var into the launcher (repeatable)")
     a.add_argument("--group",       "-g",             help="Assign to a group")
     a.add_argument("--description", "-d",             help="Short description")
-
-    # chain
-    ch = sub.add_parser("chain", help="Create an alias that runs other aliases in sequence")
-    ch.add_argument("name",                           help="Name for the chain alias")
-    ch.add_argument("--run",  nargs="+", required=True, metavar="ALIAS",
-                    help="Aliases to run in order")
-    ch.add_argument("--group",       "-g",            help="Assign to a group")
-    ch.add_argument("--description", "-d",            help="Short description")
-
-    # clone
-    cl = sub.add_parser("clone", help="Duplicate an alias under a new name")
-    cl.add_argument("source",  help="Alias to copy")
-    cl.add_argument("dest",    help="New alias name")
 
     # remove
     rm = sub.add_parser("remove", help="Delete an alias")
@@ -96,6 +85,10 @@ def build_parser() -> argparse.ArgumentParser:
     ru.add_argument("aliases", nargs="*",  help="Alias name(s)")
     ru.add_argument("--group",    "-g",    help="Run every alias in this group")
     ru.add_argument("--parallel", action="store_true", help="Run them all at the same time")
+
+    # which
+    wh = sub.add_parser("which", help="Show what an alias points to")
+    wh.add_argument("alias")
 
     # doctor
     doc = sub.add_parser("doctor", help="Check for broken aliases")
@@ -136,13 +129,6 @@ def build_parser() -> argparse.ArgumentParser:
     co = sub.add_parser("completion", help="Print a shell completion script")
     co.add_argument("shell", choices=["bash", "zsh", "fish", "powershell"])
 
-    # config
-    sub.add_parser("config", help="Open config.json in your default editor")
-
-    # rename-cmd
-    rc = sub.add_parser("rename-cmd", help="Give shalias a shorter command name")
-    rc.add_argument("name", help="New command name (e.g. 'sa')")
-
     # uninstall
     sub.add_parser("uninstall", help="Remove shalias from PATH and delete all launchers")
 
@@ -154,19 +140,16 @@ def build_parser() -> argparse.ArgumentParser:
 COMMANDS = {
     "install":    cmd_install,
     "add":        cmd_add,
-    "chain":      cmd_chain,
-    "clone":      cmd_clone,
     "remove":     cmd_remove,
     "list":       cmd_list,
     "run":        cmd_run,
+    "which":      cmd_which,
     "doctor":     cmd_doctor,
     "edit":       cmd_edit,
     "export":     cmd_export,
     "import":     cmd_import,
     "update":     cmd_update,
     "completion": cmd_completion,
-    "config":     cmd_config,
-    "rename-cmd": cmd_rename_cmd,
     "uninstall":  cmd_uninstall,
 }
 

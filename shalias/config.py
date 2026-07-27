@@ -4,7 +4,7 @@ The config file is a single JSON object:
   {
     "aliases": { "<name>": { ... } },
     "groups":  {},
-    "meta":    { "command_name": "shalias", ... }
+    "meta":    { ... }
   }
 
 Saves are atomic (write to temp, rename) so a crash mid-write
@@ -81,7 +81,3 @@ def backup_config() -> None:
 
 
 # ── Meta helpers ──────────────────────────────────────────────────────────────
-
-def get_command_name(cfg: dict) -> str:
-    """Return the user-chosen command name, defaulting to 'shalias'."""
-    return cfg.get("meta", {}).get("command_name", "shalias")

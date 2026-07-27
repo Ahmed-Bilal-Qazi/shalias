@@ -4,14 +4,13 @@ shalias list, search
 import sys
 
 from ..colors import _b, _d, _g, _r, _y
-from ..config import load_config, get_command_name
+from ..config import load_config
 from ..utils import check_update_async, format_aliases, resolve_format
 from pathlib import Path
 
 
 def cmd_list(args):
     cfg          = load_config()
-    cmd_name     = get_command_name(cfg)
     check_update_async(cfg)
 
     aliases      = cfg.get("aliases", {})
@@ -50,7 +49,7 @@ def cmd_list(args):
             print(_y("  Some aliases point to missing files:"))
             for a, t in broken:
                 print(f"    {a:<20} -> {t}")
-            print(f"  Run '{cmd_name} doctor' for the full breakdown.\n")
+            print("  Run 'shalias doctor' for the full breakdown.\n")
 
     if not aliases:
         print()
@@ -62,13 +61,13 @@ def cmd_list(args):
             print(f"  No aliases of type '{type_filter}'.")
         else:
             print("  Nothing registered yet.")
-            print(f"  Add a script  : {cmd_name} add myscript.py")
-            print(f"  Add a URL     : {cmd_name} add https://example.com --alias ex")
-            print(f"  Inline command: {cmd_name} add 'git log --oneline -5' --alias gl --inline")
+            print("  Add a script  : shalias add myscript.py")
+            print("  Add a URL     : shalias add https://example.com --alias ex")
+            print("  Inline command: shalias add 'git log --oneline -5' --alias gl --inline")
         print()
         return
 
-    format_aliases(aliases, fmt, cmd_name)
+    format_aliases(aliases, fmt)
 
 
 def _matches(alias: str, info: dict, needle: str) -> bool:
