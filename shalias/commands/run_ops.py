@@ -36,6 +36,10 @@ def cmd_run(args):
                 sys.exit(1)
 
     def _run_one(alias: str) -> None:
+        if not cfg["aliases"].get(alias, {}).get("enabled", True):
+            print(_y(f"  Skipping '{alias}' - it's disabled."))
+            print(f"  Turn it back on with: shalias edit {alias} --enable")
+            return
         launcher = BIN_DIR / (f"{alias}.bat" if IS_WINDOWS else alias)
         if not launcher.exists():
             print(_r(f"  Launcher missing for '{alias}'. Try: shalias doctor --fix"))

@@ -20,8 +20,7 @@ import sys
 from .constants import VERSION
 from .commands.install    import cmd_install
 from .commands.alias_ops  import (
-    cmd_add, cmd_chain, cmd_clone, cmd_remove, cmd_rename,
-    cmd_freeze, cmd_unfreeze,
+    cmd_add, cmd_chain, cmd_clone, cmd_remove,
 )
 from .commands.edit        import cmd_edit
 from .commands.list_search import cmd_list
@@ -115,17 +114,12 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Add or update env vars")
     ed.add_argument("--description", "-d",                help="New description")
     ed.add_argument("--group",       "-g",                help="New group")
-
-    # rename
-    rn = sub.add_parser("rename", help="Rename an alias")
-    rn.add_argument("old_alias")
-    rn.add_argument("new_alias")
-
-    # freeze / unfreeze
-    fr = sub.add_parser("freeze",   help="Lock an alias so it can't be edited or removed")
-    fr.add_argument("alias")
-    uf = sub.add_parser("unfreeze", help="Unlock a frozen alias")
-    uf.add_argument("alias")
+    ed.add_argument("--lock",    action="store_true",
+                    help="Protect this alias from edits and removal")
+    ed.add_argument("--unlock",  action="store_true", help="Drop that protection")
+    ed.add_argument("--disable", action="store_true",
+                    help="Turn the alias off but keep its settings")
+    ed.add_argument("--enable",  action="store_true", help="Turn it back on")
 
     # export / import
     ex = sub.add_parser("export", help="Save all aliases to a JSON file")
@@ -167,9 +161,6 @@ COMMANDS = {
     "run":        cmd_run,
     "doctor":     cmd_doctor,
     "edit":       cmd_edit,
-    "rename":     cmd_rename,
-    "freeze":     cmd_freeze,
-    "unfreeze":   cmd_unfreeze,
     "export":     cmd_export,
     "import":     cmd_import,
     "update":     cmd_update,

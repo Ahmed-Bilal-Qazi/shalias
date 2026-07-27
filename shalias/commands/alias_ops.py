@@ -1,5 +1,5 @@
 """
-add, chain, clone, remove, rename, freeze, unfreeze
+add, chain, clone, remove
 """
 import sys
 
@@ -177,7 +177,7 @@ def cmd_remove(args):
         print(_r(f"  '{alias}' not found. Try: shalias list"))
         sys.exit(1)
     if cfg["aliases"][alias].get("locked"):
-        print(_r(f"  '{alias}' is locked. Unlock it first: shalias unfreeze {alias}"))
+        print(_r(f"  '{alias}' is locked. Unlock it first: shalias edit {alias} --unlock"))
         sys.exit(1)
 
     backup_config()
@@ -187,47 +187,3 @@ def cmd_remove(args):
     print(_g(f"  + Removed '{alias}'"))
 
 
-def cmd_rename(args):
-    cfg = load_config()
-    old = args.old_alias
-    new = args.new_alias
-
-    if old not in cfg["aliases"]:
-        print(_r(f"  '{old}' not found."))
-        sys.exit(1)
-    if new in cfg["aliases"]:
-        print(_r(f"  '{new}' already exists."))
-        sys.exit(1)
-    if not validate_alias(new):
-        print(_r(f"  '{new}' isn't a valid name."))
-        sys.exit(1)
-
-    backup_config()
-    entry = cfg["aliases"].pop(old)
-    cfg["aliases"][new] = entry
-    remove_launcher(old)
-    write_launcher(new, entry)
-    save_config(cfg)
-    print(_g(f"  + Renamed '{old}' -> '{new}'"))
-
-
-def cmd_freeze(args):
-    cfg   = load_config()
-    alias = args.alias
-    if alias not in cfg["aliases"]:
-        print(_r(f"  '{alias}' not found."))
-        sys.exit(1)
-    cfg["aliases"][alias]["locked"] = True
-    save_config(cfg)
-    print(_g(f"  + '{alias}' is now locked"))
-
-
-def cmd_unfreeze(args):
-    cfg   = load_config()
-    alias = args.alias
-    if alias not in cfg["aliases"]:
-        print(_r(f"  '{alias}' not found."))
-        sys.exit(1)
-    cfg["aliases"][alias].pop("locked", None)
-    save_config(cfg)
-    print(_g(f"  + '{alias}' is unlocked"))

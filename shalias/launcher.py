@@ -23,7 +23,8 @@ def write_launcher(alias: str, entry: dict) -> Path:
 
 def remove_launcher(alias: str) -> None:
     """Delete the launcher file(s) for *alias* (both .bat and bare)."""
-    for name in [alias, f"{alias}.bat"]:
+    for name in [alias, f"{alias}.bat",
+                 f"{alias}.disabled", f"{alias}.bat.disabled"]:
         p = BIN_DIR / name
         if p.exists():
             p.unlink()

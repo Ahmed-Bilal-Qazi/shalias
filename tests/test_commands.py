@@ -17,8 +17,19 @@ def _ns(**kw):
     defaults = dict(
         alias=None, script=None, type=None, interpreter=None,
         inline=False, cwd=None, env=None, group=None, description=None,
-        format="table", json=False, sort=None, check=False,
-        parallel=False, fix=False, dry_run=False,
+        format="table", json=False, sort=None, check=False, pattern=None,
+        aliases=[], parallel=False, fix=False, dry_run=False, chain=None,
+    )
+    defaults.update(kw)
+    return types.SimpleNamespace(**defaults)
+
+
+def _edit_ns(alias, **kw):
+    """Namespace shaped like `shalias edit` - every flag present, all off."""
+    defaults = dict(
+        alias=alias, new_alias=None, script=None, type=None, interpreter=None,
+        cwd=None, env=None, description=None, group=None,
+        lock=False, unlock=False, enable=False, disable=False,
     )
     defaults.update(kw)
     return types.SimpleNamespace(**defaults)
@@ -149,8 +160,8 @@ class TestCmdRename(_EnvMixin, unittest.TestCase):
         from shalias.launcher import write_launcher
         write_launcher("orig", cfg["aliases"]["orig"])
 
-        from shalias.commands.alias_ops import cmd_rename
-        cmd_rename(types.SimpleNamespace(old_alias="orig", new_alias="renamed"))
+        from shalias.commands.edit import cmd_edit
+        cmd_edit(_edit_ns("orig", new_alias="renamed"))
 
         cfg = self.load()
         self.assertNotIn("orig",    cfg["aliases"])
@@ -159,19 +170,70 @@ class TestCmdRename(_EnvMixin, unittest.TestCase):
         self.assertTrue((self.bin_dir  / "renamed").exists())
 
 
-# ── freeze / unfreeze ─────────────────────────────────────────────────────────
+# ── edit --lock / --enable ────────────────────────────────────────────────────
 
-class TestFreezeUnfreeze(_EnvMixin, unittest.TestCase):
+class TestLockAndEnable(_EnvMixin, unittest.TestCase):
 
-    def test_freeze_then_unfreeze(self):
+    def _seed(self, name="x"):
         cfg = self.load()
-        cfg["aliases"]["x"] = {"type": "inline", "target": "echo hi"}
+        cfg["aliases"][name] = {"type": "inline", "target": "echo hi",
+                                "env": {}, "cwd": ""}
         self.save(cfg)
-        from shalias.commands.alias_ops import cmd_freeze, cmd_unfreeze
-        cmd_freeze(_ns(alias="x"))
+
+    def test_lock_then_unlock(self):
+        from shalias.commands.edit import cmd_edit
+        self._seed()
+        cmd_edit(_edit_ns("x", lock=True))
         self.assertTrue(self.load()["aliases"]["x"]["locked"])
-        cmd_unfreeze(_ns(alias="x"))
-        self.assertNotIn("locked", self.load()["aliases"]["x"])
+        cmd_edit(_edit_ns("x", unlock=True))
+        self.assertFalse(self.load()["aliases"]["x"]["locked"])
+
+    def test_locked_alias_refuses_edits(self):
+        from shalias.commands.edit import cmd_edit
+        self._seed()
+        cmd_edit(_edit_ns("x", lock=True))
+        with self.assertRaises(SystemExit):
+            cmd_edit(_edit_ns("x", description="nope"))
+
+    def test_disable_then_enable(self):
+        from shalias.commands.edit import cmd_edit
+        self._seed()
+        cmd_edit(_edit_ns("x", disable=True))
+        self.assertFalse(self.load()["aliases"]["x"]["enabled"])
+        cmd_edit(_edit_ns("x", enable=True))
+        self.assertTrue(self.load()["aliases"]["x"]["enabled"])
+
+    def test_lock_and_unlock_together_is_rejected(self):
+        from shalias.commands.edit import cmd_edit
+        self._seed()
+        with self.assertRaises(SystemExit):
+            cmd_edit(_edit_ns("x", lock=True, unlock=True))
+
+    def test_disable_parks_the_launcher(self):
+        from shalias.commands.edit import cmd_edit
+        from shalias.launcher import write_launcher
+        self._seed()
+        write_launcher("x", self.load()["aliases"]["x"])
+        live = self.bin_dir / ("x.bat" if not UNIX else "x")
+        parked = live.with_name(live.name + ".disabled")
+
+        cmd_edit(_edit_ns("x", disable=True))
+        self.assertFalse(live.exists())
+        self.assertTrue(parked.exists())
+
+        cmd_edit(_edit_ns("x", enable=True))
+        self.assertTrue(live.exists())
+        self.assertFalse(parked.exists())
+
+    def test_remove_cleans_up_a_disabled_launcher(self):
+        from shalias.commands.alias_ops import cmd_remove
+        from shalias.commands.edit import cmd_edit
+        from shalias.launcher import write_launcher
+        self._seed()
+        write_launcher("x", self.load()["aliases"]["x"])
+        cmd_edit(_edit_ns("x", disable=True))
+        cmd_remove(_ns(alias="x"))
+        self.assertEqual(list(self.bin_dir.glob("x*")), [])
 
 
 # ── chain ─────────────────────────────────────────────────────────────────────

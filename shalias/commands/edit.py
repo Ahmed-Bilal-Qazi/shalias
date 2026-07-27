@@ -6,9 +6,24 @@ from pathlib import Path
 
 from ..colors import _b, _d, _g, _r, _y
 from ..config import backup_config, load_config, save_config
-from ..constants import ALIAS_TYPES
+from ..constants import ALIAS_TYPES, BIN_DIR, IS_WINDOWS
 from ..launcher import remove_launcher, write_launcher
 from ..utils import parse_env, validate_alias, validate_group, validate_url
+
+
+def _launcher_paths(alias: str):
+    """Where an alias's launcher lives, enabled and disabled."""
+    live = BIN_DIR / (f"{alias}.bat" if IS_WINDOWS else alias)
+    return live, live.with_name(live.name + ".disabled")
+
+
+def _set_enabled(alias: str, enabled: bool) -> None:
+    """Turn an alias on or off by moving its launcher aside."""
+    live, parked = _launcher_paths(alias)
+    if enabled and parked.exists():
+        parked.replace(live)
+    elif not enabled and live.exists():
+        live.replace(parked)
 
 
 def cmd_edit(args):
@@ -18,8 +33,41 @@ def cmd_edit(args):
     if alias not in cfg["aliases"]:
         print(_r(f"  '{alias}' not found. Try: shalias list"))
         sys.exit(1)
+
+    # These four are standalone toggles - they do their thing and stop.
+    # --unlock has to work on a locked alias, so it runs before the lock check.
+    lock    = getattr(args, "lock",    False)
+    unlock  = getattr(args, "unlock",  False)
+    enable  = getattr(args, "enable",  False)
+    disable = getattr(args, "disable", False)
+
+    if lock and unlock:
+        print(_r("  Pick one: --lock or --unlock."))
+        sys.exit(1)
+    if enable and disable:
+        print(_r("  Pick one: --enable or --disable."))
+        sys.exit(1)
+
+    if lock or unlock:
+        backup_config()
+        cfg["aliases"][alias]["locked"] = lock
+        save_config(cfg)
+        print(_g(f"  '{alias}' is now {'locked' if lock else 'unlocked'}."))
+        return
+
+    if enable or disable:
+        if cfg["aliases"][alias].get("locked"):
+            print(_r(f"  '{alias}' is locked. Unlock it first: shalias edit {alias} --unlock"))
+            sys.exit(1)
+        backup_config()
+        cfg["aliases"][alias]["enabled"] = enable
+        save_config(cfg)
+        _set_enabled(alias, enable)
+        print(_g(f"  '{alias}' is now {'enabled' if enable else 'disabled'}."))
+        return
+
     if cfg["aliases"][alias].get("locked"):
-        print(_r(f"  '{alias}' is locked. Unlock with: shalias unfreeze {alias}"))
+        print(_r(f"  '{alias}' is locked. Unlock with: shalias edit {alias} --unlock"))
         sys.exit(1)
 
     info  = dict(cfg["aliases"][alias])
