@@ -4,6 +4,7 @@ Manages adding / removing ~/.shalias/bin from the user's PATH.
 On Windows this goes via the registry (HKCU\\Environment).
 On Unix it patches the relevant shell rc files.
 """
+import os
 import subprocess
 
 from .constants import BIN_DIR, HOME, IS_WINDOWS
@@ -11,6 +12,34 @@ from .colors import _g, _r, _y
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
+def path_is_active() -> bool:
+    """True if BIN_DIR is on the PATH this process actually inherited."""
+    here = str(BIN_DIR).rstrip("\\/").lower()
+    return any(p.strip().rstrip("\\/").lower() == here
+               for p in os.environ.get("PATH", "").split(os.pathsep))
+
+
+def path_is_persisted() -> bool:
+    """True if BIN_DIR is stored where new shells will pick it up."""
+    if IS_WINDOWS:
+        return str(BIN_DIR).lower() in [e.lower() for e in _win_get_path()]
+    marker = str(BIN_DIR)
+    for rc in shell_configs():
+        try:
+            if marker in rc.read_text(encoding="utf-8", errors="ignore"):
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def activate_hint() -> str:
+    """The one-liner that puts BIN_DIR on PATH for the shell you're in now."""
+    if IS_WINDOWS:
+        return f'$env:Path += ";{BIN_DIR}"'
+    return f'export PATH="$PATH:{BIN_DIR}"'
+
 
 def add_to_path() -> None:
     if IS_WINDOWS:

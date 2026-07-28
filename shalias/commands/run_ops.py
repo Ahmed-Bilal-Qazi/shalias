@@ -9,8 +9,8 @@ from pathlib import Path
 
 from ..colors import _g, _r, _y
 from ..config import backup_config, load_config, save_config
-from ..constants import BIN_DIR, IS_WINDOWS
-from ..launcher import remove_launcher
+from ..launcher import launcher_paths, remove_launcher
+from ..path_manager import activate_hint, path_is_active, path_is_persisted
 
 
 def cmd_run(args):
@@ -40,7 +40,7 @@ def cmd_run(args):
             print(_y(f"  Skipping '{alias}' - it's disabled."))
             print(f"  Turn it back on with: shalias edit {alias} --enable")
             return
-        launcher = BIN_DIR / (f"{alias}.bat" if IS_WINDOWS else alias)
+        launcher, _ = launcher_paths(alias)
         if not launcher.exists():
             print(_r(f"  Launcher missing for '{alias}'. Try: shalias doctor --fix"))
             return
@@ -54,13 +54,34 @@ def cmd_run(args):
             _run_one(alias)
 
 
+def check_path() -> None:
+    """
+    Warn if ~/.shalias/bin isn't on PATH. This is the number one reason a
+    freshly added alias comes back as 'not recognized' - the PATH entry is
+    written, but the shell that's already open never saw it.
+    """
+    if path_is_active():
+        return
+
+    print()
+    if path_is_persisted():
+        print(_y("  PATH: shalias is on your PATH, but not in this terminal yet."))
+        print("  Open a new terminal, or paste this to fix the one you're in:")
+        print(f"      {activate_hint()}")
+    else:
+        print(_r("  PATH: shalias isn't on your PATH, so no alias will run."))
+        print("  Fix it with: shalias install")
+
+
 def cmd_doctor(args):
     cfg     = load_config()
     aliases = cfg.get("aliases", {})
     do_fix  = getattr(args, "fix", False)
 
     if not aliases:
-        print("\n  No aliases registered - nothing to check.\n")
+        print("\n  No aliases registered - nothing to check.")
+        check_path()
+        print()
         return
 
     ok_count = missing_count = warning_count = fixed_count = 0
@@ -73,7 +94,7 @@ def cmd_doctor(args):
     for alias, info in sorted(aliases.items()):
         atype    = info.get("type", "run")
         target   = info.get("target", "") if atype in ("url", "inline") else info.get("script", "")
-        launcher = BIN_DIR / (f"{alias}.bat" if IS_WINDOWS else alias)
+        launcher, _ = launcher_paths(alias)
 
         if not launcher.exists():
             print(f"  {alias:<20} {_y('no launcher'):<22}  re-add, or run: shalias doctor --fix")
@@ -132,4 +153,5 @@ def cmd_doctor(args):
         print("  Fix script path  : shalias edit <alias> --script <new-path>")
         print("  Fix interpreter  : shalias edit <alias> --interpreter <cmd>")
         print("  Remove broken    : shalias doctor --fix")
+    check_path()
     print()
