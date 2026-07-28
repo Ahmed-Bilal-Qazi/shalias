@@ -4,25 +4,34 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shalias"
-version = "3.0.0"
-description = "Cross-platform script alias manager — run your scripts from anywhere using simple commands"
+dynamic = ["version"]
+description = "Turn any script, file or URL into a permanent terminal command - on Windows, macOS and Linux"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { text = "MIT" }
-keywords = ["cli", "alias", "scripts", "terminal", "shell", "automation"]
+authors = [{ name = "Ahmed Bilal Qazi" }]
+keywords = [
+    "cli", "alias", "scripts", "terminal", "shell", "automation",
+    "windows", "doskey", "path", "launcher", "developer-tools",
+]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Utilities",
+    "Topic :: System :: Shells",
 ]
 
 [project.urls]
@@ -32,3 +41,13 @@ Repository = "https://github.com/Ahmed-Bilal-Qazi/shalias"
 
 [project.scripts]
 shalias = "shalias.cli:main"
+
+# One source of truth for the version: shalias/constants.py.
+[tool.hatch.version]
+path = "shalias/constants.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["shalias", "tests", "README.md", "CHANGELOG.md", "LICENSE.txt", "pytest.ini"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["shalias"]
