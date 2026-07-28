@@ -1,297 +1,172 @@
-# shalias — Cross-Platform Script Alias Manager · v3.0
+# shalias — Cross-Platform Script Alias Manager · v4.0
 
 [![PyPI version](https://img.shields.io/pypi/v/shalias.svg)](https://pypi.org/project/shalias/)
 [![Python](https://img.shields.io/pypi/pyversions/shalias.svg)](https://pypi.org/project/shalias/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
 
-Run scripts, open files, and launch URLs as permanent terminal commands — on **Windows, macOS, and Linux**. No config files to edit, no PATH gymnastics, no remembering where things live.
+Turn any script, file, or URL into a permanent terminal command.
+
+```
+shalias add C:\dev\tools\backup.py --alias backup
+backup --full
+```
+
+That's the whole idea. `backup` now works in every terminal on the machine, forever, from any directory.
 
 ---
 
-## What's new in v3.0
+## Why this exists
 
-- **Auto-detect type** — just point at a file or URL, shalias figures out the rest
-- **Inline commands** — alias any shell one-liner, not just scripts
-- **Alias chaining** — wire multiple aliases together into one command
-- **Env var injection** — bake environment variables directly into a launcher
-- **`--cwd` flag** — control which directory a script runs from
-- **Clone** — duplicate an alias and tweak it
-- **Instant `list`** — the old 4-second network freeze is gone; broken-alias check is now opt-in with `--check`
+On Linux and macOS you can put a line in `.bashrc` and be done. **Windows has no equivalent that survives.** `doskey` dies when the window closes. `Set-Alias` can't pass arguments. Editing the PATH by hand means a registry trip and a new terminal every time you add something.
+
+shalias writes a real launcher into a directory that's already on your PATH, so a new alias works in the shell you're standing in — no restart, no profile editing, no admin rights. It does the same thing on macOS and Linux if you want one habit across all three.
+
+---
+
+## Install
+
+```
+pip install shalias
+shalias install
+```
+
+`pip install` puts the `shalias` command on your PATH. `shalias install` is the one-time step that creates `~/.shalias/bin` and adds *that* to your PATH, which is where your aliases will live.
+
+If you use [pipx](https://pipx.pypa.io):
+
+```
+pipx install shalias
+shalias install
+```
+
+Upgrading later is just `shalias update` — it hands off to whichever one installed you.
 
 ---
 
 ## Quick start
 
 ```
-# 1. Install (once)
-pip install shalias
+# A script - the interpreter is worked out from the extension
+shalias add deploy.py
 
-# 2. Start adding things (no new terminal needed)
-shalias add myscript.py                         # type auto-detected
-shalias add report.pdf --alias report           # opens with system default app
-shalias add https://github.com --alias gh       # opens in browser
+# A file - opens in whatever app your OS uses for it
+shalias add specs.pdf --alias specs
+
+# A URL - opens in your browser
+shalias add https://github.com/notifications --alias gh
+
+# A shell one-liner
 shalias add "git log --oneline -10" --alias gl --inline
 
-# 4. Run from anywhere
-mycmd
-gl
+# Several aliases as one command
+shalias add --chain build test deploy --alias ship
+```
+
+Then, from anywhere:
+
+```
+deploy --dry-run
+specs
 gh
+gl
+ship
 ```
 
----
-
-## Installation
-
-### Option A — pip (recommended)
-
-```
-pip install shalias
-```
-
-That's it. No extra steps, no new terminal window needed — pip puts `shalias` on your PATH automatically.
-
-To upgrade later:
-
-```
-pip install --upgrade shalias
-```
-
-### Option B — run directly (no pip)
-
-```
-python shalias.py install
-```
-
-This creates `~/.shalias/bin/`, drops a `shalias` launcher in it, and adds that directory to your PATH. Open a new terminal window once it's done.
-
----
-
-## Adding aliases
-
-The `--type` flag is optional — shalias detects it automatically:
-
-| Target | Detected as |
-|---|---|
-| `https://...` | `url` |
-| `.py .js .rb .sh ...` | `run` |
-| `.pdf .docx .png ...` | `open` |
-
-```
-# Run a script (interpreter auto-detected)
-shalias add app.py
-
-# Override the interpreter
-shalias add app.py --interpreter python3.11
-
-# Open a file with the system default app
-shalias add ~/reports/q3.pdf --alias q3
-
-# Open a URL
-shalias add https://github.com --alias gh
-
-# Inline shell command (anything that works in bash/cmd)
-shalias add "git status && git log --oneline -5" --alias gst --inline
-
-# With a custom alias name and description
-shalias add deploy.py --alias deploy --description "push to prod"
-
-# Assign to a group
-shalias add build.py --alias build --group devops
-```
-
-### Working directory
-
-By default, the script runs from wherever you call the alias (current directory). Use `--cwd` to change that:
-
-```
-# Always run from the script's own folder
-shalias add app.py --cwd script
-
-# Always run from a specific directory
-shalias add app.py --cwd /home/me/projects/myapp
-
-# Explicit default (same as not setting it)
-shalias add app.py --cwd current
-```
-
-### Environment variables
-
-Bake env vars into the launcher so they're always set when the alias runs:
-
-```
-shalias add server.py --alias dev --env PORT=8080 --env DEBUG=true
-```
-
-Multiple `--env` flags are supported.
-
----
-
-## Chaining
-
-Run multiple aliases in sequence with a single command:
-
-```
-shalias chain release --run test build deploy
-```
-
-Running `release` is now equivalent to running `test`, then `build`, then `deploy` one after the other. All three must already exist as aliases.
-
----
-
-## Clone
-
-Copy an alias under a new name, then edit it from there:
-
-```
-shalias clone deploy deploy-staging
-shalias edit deploy-staging --env ENV=staging
-```
+Arguments pass straight through to the underlying script.
 
 ---
 
 ## Commands
 
+Thirteen of them. `shalias <command> --help` has the details on any one.
+
+**Everyday**
+
 | Command | What it does |
-|---|---|
-| `shalias install` | One-time setup |
-| `shalias add` | Register an alias |
-| `shalias chain <name> --run a b c` | Create a sequential chain |
-| `shalias clone <src> <dst>` | Duplicate an alias |
-| `shalias list` | Show all aliases |
-| `shalias list --sort uses` | Sort by most used |
-| `shalias list --sort recent` | Sort by most recently run |
-| `shalias list --check` | Also verify file targets still exist |
-| `shalias search <term>` | Search by name, path, group, or description |
-| `shalias run <alias>` | Run an alias by name |
-| `shalias run a b c --parallel` | Run multiple aliases at the same time |
-| `shalias run-group <group>` | Run all aliases in a group |
-| `shalias edit <alias>` | Modify an alias (interactive prompt) |
-| `shalias rename <old> <new>` | Rename an alias |
-| `shalias remove <alias>` | Delete an alias |
-| `shalias freeze <alias>` | Lock against edits |
-| `shalias unfreeze <alias>` | Unlock |
-| `shalias stats` | Usage counts and last-run timestamps |
-| `shalias doctor` | Check for broken aliases |
-| `shalias doctor --fix` | Auto-remove aliases with missing files |
-| `shalias export <file>` | Save config to JSON |
-| `shalias import <file>` | Load config from JSON |
-| `shalias import <file> --dry-run` | Preview import without applying it |
-| `shalias update` | Pull the latest version from GitHub |
-| `shalias completion bash` | Print bash completion script |
-| `shalias completion zsh` | Print zsh completion script |
-| `shalias config` | Open config.json in your editor |
-| `shalias uninstall` | Remove from PATH and delete launchers |
+| --- | --- |
+| `add` | Register a script, file, URL, or command |
+| `list [term]` | Show your aliases; add a word to filter |
+| `run <alias>...` | Run one or more aliases |
+| `which <alias>` | Show what an alias points at |
+| `edit <alias>` | Change an alias, or lock/disable it |
+| `remove <alias>` | Delete an alias |
+
+**Setup**
+
+| Command | What it does |
+| --- | --- |
+| `install` | One-time setup on this machine |
+| `doctor` | Find broken aliases; `--fix` clears them out |
+| `update` | Update shalias itself |
+| `uninstall` | Remove shalias and every launcher |
+
+**Moving between machines**
+
+| Command | What it does |
+| --- | --- |
+| `export <file>` | Save all aliases to JSON |
+| `import <file>` | Load aliases from JSON (`--dry-run` to preview) |
+| `completion` | Print a shell completion script |
 
 ---
 
-## Editing aliases
+## Useful flags
 
-Running `shalias edit <alias>` with no extra flags drops into an interactive prompt — just hit Enter to keep any field as-is, or type a new value:
-
-```
-$ shalias edit myapp
-
-  Editing: myapp
-  Hit Enter to keep current value. Space + Enter to clear.
-
-  alias name       [myapp]:
-  type             [run]:
-  script path      [/home/me/scripts/app.py]: /home/me/scripts/app_v2.py
-  interpreter      [python3]:
-  description      [my app]:
-  group            [none]:
-  cwd              [none]: script
-```
-
-Or use flags directly if you know what you want:
+**Where a script runs from.** Scripts that use relative paths break when you call them from elsewhere:
 
 ```
-shalias edit myapp --script /new/path/app.py
-shalias edit myapp --interpreter python3.11
-shalias edit myapp --env DB_URL=postgres://localhost/dev
+shalias add tool.py --cwd script      # always run from the script's own folder
+shalias add tool.py --cwd C:\data     # always run from a fixed directory
 ```
 
----
-
-## Groups
-
-Group related aliases together so you can list or run them as a set:
+**Environment variables** baked into the launcher:
 
 ```
-shalias add test.py  --alias test  --group dev
-shalias add build.py --alias build --group dev
-shalias add lint.py  --alias lint  --group dev
-
-shalias list --group dev
-shalias run-group dev
+shalias add api.py --env API_KEY=abc123 --env DEBUG=1
 ```
 
----
-
-## Locking
-
-Prevent an alias from being accidentally edited or removed:
+**Groups**, for running related things together:
 
 ```
-shalias freeze deploy
-shalias unfreeze deploy
+shalias add build.py --group ci
+shalias add test.py  --group ci
+shalias run --group ci --parallel
 ```
 
-Locked aliases show a 🔒 in the list.
+**Locking**, so an important alias can't be edited or deleted by accident:
+
+```
+shalias edit deploy --lock
+shalias edit deploy --unlock
+```
+
+**Disabling**, when you want an alias out of the way but not gone:
+
+```
+shalias edit deploy --disable    # launcher is parked, config is kept
+shalias edit deploy --enable     # exactly as it was
+```
+
+**Renaming:**
+
+```
+shalias edit oldname --new-alias newname
+```
 
 ---
 
 ## Shell completion
 
-**Bash:**
 ```
-source <(shalias completion bash)
-```
+# PowerShell
+shalias completion powershell >> $PROFILE
 
-Add that line to `~/.bashrc` to make it permanent.
+# bash
+shalias completion bash >> ~/.bashrc
 
-**Zsh:**
-```
-source <(shalias completion zsh)
-```
-
-Add to `~/.zshrc`.
-
----
-
-## Backup and restore
-
-```
-shalias export backup.json
-shalias import backup.json
-shalias import backup.json --dry-run   # preview first
-```
-
-shalias also takes rolling automatic backups (last 10) before any destructive operation. They live in `~/.shalias/backups/`.
-
----
-
-## Supported interpreters
-
-| Extension | Default interpreter |
-|---|---|
-| `.py` | `python3` / `python` |
-| `.js` | `node` |
-| `.ts` | `ts-node` |
-| `.sh` | `bash` |
-| `.ps1` | `powershell` |
-| `.rb` | `ruby` |
-| `.pl` | `perl` |
-| `.lua` | `lua` |
-| `.php` | `php` |
-| `.r` / `.R` | `Rscript` |
-| `.go` | `go run` |
-
-Override any of these with `--interpreter`:
-
-```
-shalias add script.xyz --alias test --interpreter my_custom_runner
+# zsh
+shalias completion zsh >> ~/.zshrc
 ```
 
 ---
@@ -300,51 +175,49 @@ shalias add script.xyz --alias test --interpreter my_custom_runner
 
 ```
 shalias add app.py
-        ↓
-Creates ~/.shalias/bin/app  (or app.bat on Windows)
-        ↓
-That directory is in your PATH
-        ↓
-app [args...]  →  python3 /full/path/to/app.py [args...]
+        |
+Creates ~/.shalias/bin/app.bat   (or ~/.shalias/bin/app on macOS and Linux)
+        |
+That directory is on your PATH
+        |
+app [args...]  ->  python /full/path/to/app.py [args...]
 ```
 
-Each launcher is a tiny shell script (or `.bat`) that just calls your actual file. Arguments pass straight through.
-
----
-
-## File layout
+Each launcher is a two-line batch or shell script that calls your file. Nothing runs in the background, nothing phones home, and there are no dependencies beyond the standard library.
 
 ```
 ~/.shalias/
-├── bin/            ← launchers live here (this is on your PATH)
-├── config.json     ← all alias data
-└── backups/        ← rolling config snapshots
+  bin/            <- launchers live here, and this is what's on your PATH
+  config.json     <- every alias
+  backups/        <- rolling snapshots, written before any change
 ```
 
 ---
 
 ## Troubleshooting
 
-**Command not found after install**
-Restart your terminal, or run `source ~/.bashrc` (or whichever shell config shalias wrote to). On Windows, open a new cmd window.
+**"'myalias' is not recognized" right after adding it**
 
-**Script runs but can't find its own files**
-Your script is probably using relative paths. Fix it with:
+Run `shalias doctor`. If the PATH entry is written but your current terminal hasn't picked it up, it prints the one line that fixes the shell you're in. A new terminal also works.
+
+**The script runs but can't find its own files**
+
+It's using relative paths. Pin it to its own directory:
+
 ```
 shalias edit myalias --cwd script
 ```
-This makes the script always run from its own directory.
 
-**Alias stopped working**
+**An alias stopped working**
+
 ```
-shalias doctor
-```
-If a file moved, update the path:
-```
+shalias doctor          # find what moved
+shalias doctor --fix    # drop entries whose files are gone
 shalias edit myalias --script /new/path/to/script.py
 ```
 
 **Wrong interpreter**
+
 ```
 shalias edit myalias --interpreter python3.11
 ```
@@ -353,15 +226,21 @@ shalias edit myalias --interpreter python3.11
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.9+
 - Windows, macOS, or Linux
-- No admin/root required
+- No admin or root
 - No external dependencies
+
+---
+
+## Upgrading from 3.x
+
+Several commands moved under the command they belonged to — `search` is now `list <term>`, `rename` and `freeze` are flags on `edit`, and so on. The [changelog](CHANGELOG.md) has the full mapping.
 
 ---
 
 ## Contributing
 
-Bug reports and ideas welcome — open an issue. When reporting a problem, please include the output of `shalias doctor` and your OS + Python version.
+Bug reports and ideas welcome — open an issue. When reporting a problem, include the output of `shalias doctor` along with your OS and Python version.
 
 Keep it lightweight and dependency-free.
