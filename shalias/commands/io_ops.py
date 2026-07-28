@@ -2,23 +2,16 @@
 shalias export, import, update, uninstall
 """
 import json
-import os
-import re
 import shutil
 import subprocess
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 from ..colors import _g, _r, _y
 from ..config import backup_config, load_config, save_config
-from ..constants import (
-    BIN_DIR, CONFIG_FILE, IS_MACOS, IS_WINDOWS, UPDATE_URL, VERSION,
-)
-from ..launcher import write_launcher, remove_launcher
+from ..constants import BIN_DIR, CONFIG_FILE
+from ..launcher import write_launcher
 from ..path_manager import remove_from_path
-from ..utils import now_stamp, validate_alias
 
 
 def cmd_export(args):
@@ -66,27 +59,49 @@ def cmd_import(args):
     print(_g(f"\n  + Imported {len(aliases)} aliases\n"))
 
 
+def install_mode() -> str:
+    """
+    How this copy of shalias got onto the machine: 'source', 'pipx' or 'pip'.
+
+    A checkout has pyproject.toml two levels above this file; pipx keeps every
+    app in its own venv under a directory literally named 'pipx'.
+    """
+    root = Path(__file__).resolve().parents[2]
+    if (root / "pyproject.toml").exists() or (root / ".git").exists():
+        return "source"
+    if "pipx" in Path(sys.prefix).parts:
+        return "pipx"
+    return "pip"
+
+
 def cmd_update(args):
-    print("  Checking for updates...")
+    mode = install_mode()
+
+    if mode == "source":
+        print(_y("\n  This is a source checkout, so shalias won't overwrite it."))
+        print(f"  Pull it yourself:  cd {Path(__file__).resolve().parents[2]} && git pull\n")
+        return
+
+    if mode == "pipx":
+        cmd = ["pipx", "upgrade", "shalias"]
+    else:
+        cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "shalias"]
+    printable = " ".join(cmd)
+
+    print(f"\n  Running: {printable}\n")
     try:
-        req = urllib.request.Request(UPDATE_URL, method="GET")
-        req.add_header("User-Agent", f"shalias/{VERSION}")
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            remote_src = resp.read().decode("utf-8")
-        m = re.search(r'^VERSION\s*=\s*["\']([^"\']+)["\']', remote_src, re.MULTILINE)
-        if not m:
-            print(_y("  Couldn't parse the remote version - try again later."))
-            return
-        remote_ver = m.group(1)
-        if remote_ver == VERSION:
-            print(_g(f"  You're already on the latest version ({VERSION})."))
-            return
-        print(_y(f"  New version: {remote_ver}  (you have {VERSION})"))
-        self_path = Path(sys.argv[0]).resolve()
-        self_path.write_text(remote_src, encoding="utf-8")
-        print(_g(f"  + Updated to {remote_ver}"))
-    except Exception as e:
-        print(_r(f"  Update failed: {e}"))
+        code = subprocess.run(cmd).returncode
+    except OSError as e:
+        print(_r(f"\n  Couldn't run {cmd[0]}: {e}"))
+        print(f"  Do it by hand:  {printable}\n")
+        sys.exit(1)
+
+    if code != 0:
+        print(_r(f"\n  Update failed (exit {code})."))
+        print(f"  Try it by hand:  {printable}\n")
+        sys.exit(1)
+
+    print(_g("\n  + Done. Check it with: shalias --version\n"))
 
 
 def cmd_uninstall(args):
@@ -96,7 +111,7 @@ def cmd_uninstall(args):
         shutil.rmtree(BIN_DIR)
         print(_g("  + Launchers removed"))
     print()
-    print("  Your aliases are still saved at ~/.shalias/config.json")
+    print(f"  Your aliases are still saved at {CONFIG_FILE}")
     print("  Delete it manually if you want a completely clean slate.")
     print()
     print("  Bye! o/")

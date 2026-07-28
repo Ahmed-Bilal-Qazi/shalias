@@ -17,14 +17,12 @@ from ..utils import (
     validate_alias,
     validate_group,
     validate_url,
-    check_update_async,
 )
 from pathlib import Path
 
 
 def cmd_add(args):
     cfg = load_config()
-    check_update_async(cfg)
 
     # ── chain of other aliases ────────────────────────────────────────────────
     steps = getattr(args, "chain", None)

@@ -21,11 +21,6 @@ BIN_DIR     = SHALIAS_DIR / "bin"
 CONFIG_FILE = SHALIAS_DIR / "config.json"
 BACKUP_DIR  = SHALIAS_DIR / "backups"
 
-# ── Remote update source ──────────────────────────────────────────────────────
-UPDATE_URL = (
-    "https://raw.githubusercontent.com/Ahmed-Bilal-Qazi/shalias/main/shalias/cli.py"
-)
-
 # ── Alias types ───────────────────────────────────────────────────────────────
 ALIAS_TYPES = ("run", "open", "url", "inline", "chain")
 

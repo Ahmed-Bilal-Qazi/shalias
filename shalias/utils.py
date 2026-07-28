@@ -1,27 +1,15 @@
 """
-Shared helpers: validation, type/interpreter detection, background
-update check, output formatting, and --format flag support.
+Shared helpers: validation, type/interpreter detection, output
+formatting, and --format flag support.
 """
 import json
 import re
 import sys
-import threading
-import time
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .colors import _b, _d, _g, _r, _y
-from .constants import (
-    ALIAS_TYPES,
-    BIN_DIR,
-    INTERPRETER_MAP,
-    IS_WINDOWS,
-    OPEN_EXTENSIONS,
-    UPDATE_URL,
-    VERSION,
-)
+from .constants import INTERPRETER_MAP, IS_WINDOWS, OPEN_EXTENSIONS
 
 
 # ── Validators ────────────────────────────────────────────────────────────────
@@ -87,38 +75,6 @@ def detect_interpreter(script_path: Path) -> str:
         script_path.suffix.lower(),
         "python3" if not IS_WINDOWS else "python",
     )
-
-
-# ── Background update check ───────────────────────────────────────────────────
-
-def check_update_async(cfg: dict) -> None:
-    """Fire a version check in the background - never blocks the CLI."""
-    meta = cfg.setdefault("meta", {})
-    if time.time() - meta.get("last_update_check", 0) < 86400:
-        return
-
-    def _do() -> None:
-        try:
-            req = urllib.request.Request(UPDATE_URL, method="GET")
-            req.add_header("User-Agent", f"shalias/{VERSION}")
-            with urllib.request.urlopen(req, timeout=4) as resp:
-                src = resp.read(4096).decode("utf-8", errors="ignore")
-            m = re.search(r'^VERSION\s*=\s*["\']([^"\']+)["\']', src, re.MULTILINE)
-            if m and m.group(1) != VERSION:
-                print(_y(
-                    f"\n  shalias {m.group(1)} is available"
-                    f" (you have {VERSION}). Run: shalias update\n"
-                ))
-        except Exception:
-            pass
-        meta["last_update_check"] = time.time()
-        try:
-            from .config import save_config
-            save_config(cfg)
-        except Exception:
-            pass
-
-    threading.Thread(target=_do, daemon=True).start()
 
 
 # ── Output formatting ─────────────────────────────────────────────────────────

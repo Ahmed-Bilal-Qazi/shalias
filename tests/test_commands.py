@@ -61,8 +61,7 @@ class _EnvMixin:
                  patch("shalias.config.SHALIAS_DIR",       self.td), \
                  patch("shalias.config.BACKUP_DIR",        self.backup_dir), \
                  patch("shalias.launcher.BIN_DIR",         self.bin_dir), \
-                 patch("shalias.constants.BIN_DIR",        self.bin_dir), \
-                 patch("shalias.commands.run_ops.BIN_DIR", self.bin_dir):
+                 patch("shalias.constants.BIN_DIR",        self.bin_dir):
                 yield
         return _ctx()
 

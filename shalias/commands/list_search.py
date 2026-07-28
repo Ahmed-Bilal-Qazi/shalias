@@ -5,14 +5,12 @@ import sys
 
 from ..colors import _b, _d, _g, _r, _y
 from ..config import load_config
-from ..utils import check_update_async, format_aliases, resolve_format
+from ..utils import format_aliases, resolve_format
 from pathlib import Path
 
 
 def cmd_list(args):
     cfg          = load_config()
-    check_update_async(cfg)
-
     aliases      = cfg.get("aliases", {})
     pattern      = (getattr(args, "pattern", None) or "").lower().strip()
     group_filter = getattr(args, "group",  None)
